@@ -95,7 +95,7 @@ function Modal({
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/80 px-4 py-6 backdrop-blur">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
+      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-white">{title}</h2>
           <button
@@ -139,10 +139,10 @@ function TransactionForm({
   }
 
   return (
-    <form action={(formData) => { saveDefaultCurrency(formData); action(formData); }} className="grid gap-4 md:grid-cols-2">
-      <div>
+    <form action={(formData) => { saveDefaultCurrency(formData); action(formData); }} className="grid min-w-0 gap-4 md:grid-cols-2">
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-slate-300">Data</label>
-        <input name="date" type="date" defaultValue={transaction?.date ?? today()} required className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500" />
+        <input name="date" type="date" defaultValue={transaction?.date ?? today()} required className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500" />
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">Valor</label>
