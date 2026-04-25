@@ -57,15 +57,27 @@ export type FinanceCategory = {
   updated_at: string;
 };
 
+export type FinanceAccount = {
+  id: string;
+  profile_id: string;
+  name: string;
+  kind: "bank" | "cash" | "credit_card";
+  created_at: string;
+  updated_at: string;
+};
+
 export type FinanceTransaction = {
   id: string;
   profile_id: string;
   category_id: string | null;
+  account_id: string | null;
   date: string;
+  due_date: string | null;
   description: string;
   amount: number | null;
   currency: "BRL" | "USD" | "EUR";
   type: "income" | "expense";
+  mode: "normal" | "initial_balance" | "credit_purchase" | "fixed_expense";
   tithe_eligible: boolean;
   created_at: string;
   updated_at: string;

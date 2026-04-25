@@ -8,6 +8,7 @@ const DEFAULT_CATEGORIES = [
   "Roupa",
   "Utensílios de casa",
   "Alimentação fora de casa",
+  "Saldo inicial",
 ];
 
 function monthBounds() {
@@ -28,7 +29,10 @@ function isMissingFinanceSchema(error: { message?: string } | null) {
           error.message.includes("finance_transactions"))) ||
         error.message.includes("column finance_transactions.type does not exist") ||
         error.message.includes("column finance_transactions.tithe_eligible does not exist") ||
-        error.message.includes("column finance_transactions.currency does not exist")),
+        error.message.includes("column finance_transactions.currency does not exist") ||
+        error.message.includes("finance_accounts") ||
+        error.message.includes("column finance_transactions.account_id does not exist") ||
+        error.message.includes("column finance_transactions.mode does not exist")),
   );
 }
 
@@ -90,9 +94,44 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   const { data: categories, error: finalCategoriesError } = await categoriesQuery;
   if (finalCategoriesError) throw new Error(finalCategoriesError.message);
 
+  let accountsQuery = supabase
+    .from("finance_accounts")
+    .select("id, name, kind")
+    .eq("profile_id", profile.id)
+    .order("name", { ascending: true });
+
+  const { data: initialAccounts, error: accountsError } = await accountsQuery;
+  if (isMissingFinanceSchema(accountsError)) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+          Rode novamente <span className="font-mono">supabase/financeiro.sql</span> no Supabase.
+        </div>
+      </div>
+    );
+  }
+  if (accountsError) throw new Error(accountsError.message);
+
+  if (!initialAccounts?.length) {
+    await supabase.from("finance_accounts").insert({
+      profile_id: profile.id,
+      name: "Conta principal",
+      kind: "bank",
+    });
+    accountsQuery = supabase
+      .from("finance_accounts")
+      .select("id, name, kind")
+      .eq("profile_id", profile.id)
+      .order("name", { ascending: true });
+  }
+
+  const { data: accounts, error: finalAccountsError } = await accountsQuery;
+  if (finalAccountsError) throw new Error(finalAccountsError.message);
+
   let transactionsQuery = supabase
     .from("finance_transactions")
-    .select("id, date, description, amount, currency, category_id, type, tithe_eligible, finance_categories(id, name)")
+    .select("id, date, description, amount, currency, category_id, account_id, type, mode, due_date, tithe_eligible, finance_categories(id, name), finance_accounts(id, name, kind)")
     .eq("profile_id", profile.id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -120,6 +159,7 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   if (transactionsError) throw new Error(transactionsError.message);
 
   const typedCategories = (categories ?? []) as FinanceCategory[];
+  const typedAccounts = (accounts ?? []);
   const typedTransactions = (transactions ?? []) as unknown as FinanceTransaction[];
   const monthTransactions = typedTransactions.filter((item) => item.date >= monthStart && item.date <= monthEnd && item.currency === currency);
   const income = monthTransactions
@@ -130,6 +170,9 @@ export default async function FinanceiroPage({ searchParams }: Props) {
     .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
   const titheBase = monthTransactions
     .filter((item) => item.type === "income" && item.tithe_eligible)
+    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+  const scheduledExpenses = typedTransactions
+    .filter((item) => item.currency === currency && item.type === "expense" && item.due_date && item.due_date >= monthStart && item.due_date <= monthEnd)
     .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 
   const expenseByCategory = monthTransactions
@@ -151,11 +194,13 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   return (
     <FinancePanel
       categories={typedCategories}
+      accounts={typedAccounts}
       transactions={typedTransactions}
       metrics={{
         income,
         expenses,
         balance: income - expenses,
+        projectedBalance: income - expenses - scheduledExpenses,
         tithe: titheBase * 0.1,
         topExpenses,
       }}

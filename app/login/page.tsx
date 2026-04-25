@@ -184,7 +184,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 rounded-2xl bg-white/10 p-6">
           <p className="text-sm italic leading-7 text-orange-50">
-            "Ide por todo o mundo e pregai o evangelho a toda criatura."
+            &quot;Ide por todo o mundo e pregai o evangelho a toda criatura.&quot;
           </p>
           <p className="mt-3 text-xs font-semibold text-orange-200">Marcos 16:15</p>
         </div>

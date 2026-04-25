@@ -24,19 +24,31 @@ function cleanCurrency(value: FormDataEntryValue | null) {
   return ["BRL", "USD", "EUR"].includes(currency) ? currency : "BRL";
 }
 
+function cleanMode(value: FormDataEntryValue | null) {
+  const mode = cleanString(value);
+  return ["normal", "initial_balance", "credit_purchase", "fixed_expense"].includes(mode)
+    ? mode
+    : "normal";
+}
+
 export async function addTransaction(fd: FormData) {
   const { supabase, profile } = await getCurrentProfile();
 
   const date = cleanString(fd.get("date"));
   const description = cleanString(fd.get("description"));
   const categoryId = cleanString(fd.get("category_id"));
+  const accountId = cleanString(fd.get("account_id"));
   const amount = parseAmount(fd.get("amount"));
   const currency = cleanCurrency(fd.get("currency"));
   const type = cleanType(fd.get("type"));
+  const mode = cleanMode(fd.get("mode"));
+  const dueDate = cleanString(fd.get("due_date"));
   const titheEligible = type === "income" && cleanString(fd.get("tithe_eligible")) === "on";
 
   if (!date) throw new Error("Informe a data do lançamento.");
   if (!description) throw new Error("Informe a descrição do lançamento.");
+  if (!categoryId) throw new Error("Selecione uma categoria.");
+  if (!accountId) throw new Error("Selecione uma conta.");
   if (amount === null) throw new Error("Informe o valor do lançamento.");
 
   const { error } = await supabase.from("finance_transactions").insert({
@@ -46,8 +58,11 @@ export async function addTransaction(fd: FormData) {
     amount,
     currency,
     type,
+    mode,
+    due_date: dueDate || null,
     tithe_eligible: titheEligible,
-    category_id: categoryId || null,
+    category_id: categoryId,
+    account_id: accountId,
   });
 
   if (error) throw new Error(error.message);
@@ -61,13 +76,18 @@ export async function updateTransaction(id: string, fd: FormData) {
   const date = cleanString(fd.get("date"));
   const description = cleanString(fd.get("description"));
   const categoryId = cleanString(fd.get("category_id"));
+  const accountId = cleanString(fd.get("account_id"));
   const amount = parseAmount(fd.get("amount"));
   const currency = cleanCurrency(fd.get("currency"));
   const type = cleanType(fd.get("type"));
+  const mode = cleanMode(fd.get("mode"));
+  const dueDate = cleanString(fd.get("due_date"));
   const titheEligible = type === "income" && cleanString(fd.get("tithe_eligible")) === "on";
 
   if (!date) throw new Error("Informe a data do lançamento.");
   if (!description) throw new Error("Informe a descrição do lançamento.");
+  if (!categoryId) throw new Error("Selecione uma categoria.");
+  if (!accountId) throw new Error("Selecione uma conta.");
   if (amount === null) throw new Error("Informe o valor do lançamento.");
 
   const { error } = await supabase
@@ -78,8 +98,11 @@ export async function updateTransaction(id: string, fd: FormData) {
       amount,
       currency,
       type,
+      mode,
+      due_date: dueDate || null,
       tithe_eligible: titheEligible,
-      category_id: categoryId || null,
+      category_id: categoryId,
+      account_id: accountId,
     })
     .eq("id", id)
     .eq("profile_id", profile.id);
@@ -113,6 +136,42 @@ export async function addCategory(fd: FormData) {
     profile_id: profile.id,
     name,
   });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/financeiro");
+}
+
+export async function addAccount(fd: FormData) {
+  const { supabase, profile } = await getCurrentProfile();
+  const name = cleanString(fd.get("name"));
+  const kind = cleanString(fd.get("kind")) || "bank";
+
+  if (!name) throw new Error("Informe o nome da conta.");
+
+  const { error } = await supabase.from("finance_accounts").insert({
+    profile_id: profile.id,
+    name,
+    kind,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/financeiro");
+}
+
+export async function updateAccount(id: string, fd: FormData) {
+  const { supabase, profile } = await getCurrentProfile();
+  const name = cleanString(fd.get("name"));
+  const kind = cleanString(fd.get("kind")) || "bank";
+
+  if (!name) throw new Error("Informe o nome da conta.");
+
+  const { error } = await supabase
+    .from("finance_accounts")
+    .update({ name, kind })
+    .eq("id", id)
+    .eq("profile_id", profile.id);
 
   if (error) throw new Error(error.message);
 

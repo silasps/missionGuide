@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, ListFilter, Pencil, Plus, Tags, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, Building2, ListFilter, Pencil, Plus, Tags, Trash2, X } from "lucide-react";
 import {
+  addAccount,
   addCategory,
   addTransaction,
   deleteCategory,
   deleteTransaction,
+  updateAccount,
   updateCategory,
   updateTransaction,
 } from "./actions";
@@ -16,6 +19,12 @@ export type FinanceCategory = {
   name: string;
 };
 
+export type FinanceAccount = {
+  id: string;
+  name: string;
+  kind: string;
+};
+
 export type FinanceTransaction = {
   id: string;
   date: string;
@@ -23,18 +32,24 @@ export type FinanceTransaction = {
   amount: number | null;
   currency: string;
   category_id: string | null;
+  account_id: string | null;
   type: "income" | "expense";
+  mode: "normal" | "initial_balance" | "credit_purchase" | "fixed_expense";
+  due_date: string | null;
   tithe_eligible: boolean | null;
   finance_categories?: FinanceCategory | FinanceCategory[] | null;
+  finance_accounts?: FinanceAccount | FinanceAccount[] | null;
 };
 
 type Props = {
   categories: FinanceCategory[];
+  accounts: FinanceAccount[];
   transactions: FinanceTransaction[];
   metrics: {
     income: number;
     expenses: number;
     balance: number;
+    projectedBalance: number;
     tithe: number;
     topExpenses: { name: string; amount: number }[];
   };
@@ -115,16 +130,26 @@ function Modal({
 
 function TransactionForm({
   categories,
+  accounts,
   transaction,
   onEditCategories,
+  onEditAccounts,
+  initialBalance,
 }: {
   categories: FinanceCategory[];
+  accounts: FinanceAccount[];
   transaction?: FinanceTransaction;
   onEditCategories: () => void;
+  onEditAccounts: () => void;
+  initialBalance?: boolean;
 }) {
-  const [type, setType] = useState<"income" | "expense">(transaction?.type ?? "expense");
+  const [type, setType] = useState<"income" | "expense">(transaction?.type ?? (initialBalance ? "income" : "expense"));
+  const [mode, setMode] = useState(transaction?.mode ?? (initialBalance ? "initial_balance" : "normal"));
   const [currency, setCurrency] = useState(transaction?.currency ?? "BRL");
   const action = transaction ? updateTransaction.bind(null, transaction.id) : addTransaction;
+  const initialCategory = initialBalance
+    ? categories.find((category) => category.name === "Saldo inicial")?.id
+    : undefined;
 
   useEffect(() => {
     if (!transaction) {
@@ -139,15 +164,30 @@ function TransactionForm({
   }
 
   return (
-    <form action={(formData) => { saveDefaultCurrency(formData); action(formData); }} className="grid min-w-0 gap-4 md:grid-cols-2">
+    <form action={async (formData) => { saveDefaultCurrency(formData); await action(formData); }} className="grid min-w-0 gap-4 md:grid-cols-2">
       <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-slate-300">Data</label>
         <input name="date" type="date" defaultValue={transaction?.date ?? today()} required className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500" />
       </div>
       <div>
+        <label className="mb-2 block text-sm font-medium text-slate-300">Tipo de lançamento</label>
+        <select name="mode" value={mode} onChange={(event) => setMode(event.target.value as typeof mode)} className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
+          <option value="normal">Normal</option>
+          <option value="initial_balance">Saldo inicial</option>
+          <option value="credit_purchase">Compra no crédito</option>
+          <option value="fixed_expense">Gasto fixo ajustável</option>
+        </select>
+      </div>
+      <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">Valor</label>
         <input name="amount" type="text" inputMode="decimal" defaultValue={transaction?.amount ? String(transaction.amount).replace(".", ",") : ""} required placeholder="0,00" className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-slate-500" />
       </div>
+      {(mode === "credit_purchase" || mode === "fixed_expense") ? (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-300">Vencimento / previsão</label>
+          <input name="due_date" type="date" defaultValue={transaction?.due_date ?? today()} className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500" />
+        </div>
+      ) : null}
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">Moeda</label>
         <select name="currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
@@ -172,13 +212,25 @@ function TransactionForm({
           </button>
         </div>
         <div className="flex gap-2">
-          <select name="category_id" defaultValue={transaction?.category_id ?? ""} className="min-w-0 flex-1 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
-            <option value="">Sem categoria</option>
+          <select name="category_id" defaultValue={transaction?.category_id ?? initialCategory ?? ""} required className="min-w-0 flex-1 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
+            <option value="">Selecione</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
         </div>
+      </div>
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block text-sm font-medium text-slate-300">Conta / banco / cartão</label>
+          <button type="button" onClick={onEditAccounts} className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-white">
+            <Building2 size={13} />Editar
+          </button>
+        </div>
+        <select name="account_id" defaultValue={transaction?.account_id ?? accounts[0]?.id ?? ""} required className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
+          <option value="">Selecione</option>
+          {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+        </select>
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">Tipo</label>
@@ -206,9 +258,11 @@ function TransactionForm({
   );
 }
 
-export default function FinancePanel({ categories, transactions, metrics, filters }: Props) {
+export default function FinancePanel({ categories, accounts, transactions, metrics, filters }: Props) {
   const [transactionModal, setTransactionModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState(false);
+  const [accountModal, setAccountModal] = useState(false);
+  const [initialBalanceModal, setInitialBalanceModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
   const [editing, setEditing] = useState<FinanceTransaction | null>(null);
   const maxExpense = useMemo(
@@ -227,6 +281,7 @@ export default function FinancePanel({ categories, transactions, metrics, filter
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/admin/financeiro/cambio" className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800">Câmbio</Link>
           <form>
             <select name="currency" defaultValue={filters.currency} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm font-semibold text-white" onChange={(event) => event.currentTarget.form?.requestSubmit()}>
               {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
@@ -242,6 +297,17 @@ export default function FinancePanel({ categories, transactions, metrics, filter
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-400">Saídas</p><p className="mt-2 text-xl font-bold text-red-300">{money(metrics.expenses, filters.currency)}</p></div>
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-400">Saldo</p><p className="mt-2 text-xl font-bold text-white">{money(metrics.balance, filters.currency)}</p></div>
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-400">Dízimo</p><p className="mt-2 text-xl font-bold text-sky-300">{money(metrics.tithe, filters.currency)}</p></div>
+      </div>
+      {!transactions.length ? (
+        <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-emerald-100">
+          <p className="font-semibold text-white">Comece pelo saldo inicial</p>
+          <p className="mt-1 text-sm text-emerald-100/80">Assim seu controle não começa negativo quando você lançar as primeiras saídas.</p>
+          <button onClick={() => setInitialBalanceModal(true)} className="mt-4 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900">Inserir saldo inicial</button>
+        </div>
+      ) : null}
+      <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+        <p className="text-xs text-slate-400">Saldo previsto com compras no crédito e gastos fixos do mês</p>
+        <p className="mt-2 text-xl font-bold text-white">{money(metrics.projectedBalance, filters.currency)}</p>
       </div>
 
       <section className="mt-6 rounded-3xl border border-slate-800 bg-slate-900 p-6">
@@ -264,7 +330,11 @@ export default function FinancePanel({ categories, transactions, metrics, filter
       </section>
 
       <Modal title="Novo lançamento" open={transactionModal} onClose={() => setTransactionModal(false)}>
-        <TransactionForm categories={categories} onEditCategories={() => setCategoryModal(true)} />
+        <TransactionForm categories={categories} accounts={accounts} onEditCategories={() => setCategoryModal(true)} onEditAccounts={() => setAccountModal(true)} />
+      </Modal>
+
+      <Modal title="Saldo inicial" open={initialBalanceModal} onClose={() => setInitialBalanceModal(false)}>
+        <TransactionForm categories={categories} accounts={accounts} onEditCategories={() => setCategoryModal(true)} onEditAccounts={() => setAccountModal(true)} initialBalance />
       </Modal>
 
       <Modal title="Categorias" open={categoryModal} onClose={() => setCategoryModal(false)}>
@@ -283,6 +353,31 @@ export default function FinancePanel({ categories, transactions, metrics, filter
                 <button className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-red-300"><Trash2 size={14} />Excluir</button>
               </form>
             </div>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal title="Contas, bancos e cartões" open={accountModal} onClose={() => setAccountModal(false)}>
+        <form action={addAccount} className="mb-5 grid gap-2 md:grid-cols-[1fr_160px_auto]">
+          <input name="name" required placeholder="Ex: Nubank, Caixa, Cartão Visa" className="min-w-0 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-slate-500" />
+          <select name="kind" className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-3 text-white">
+            <option value="bank">Conta</option>
+            <option value="cash">Dinheiro</option>
+            <option value="credit_card">Cartão</option>
+          </select>
+          <button type="submit" className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900">Inserir</button>
+        </form>
+        <div className="space-y-3">
+          {accounts.map((account) => (
+            <form key={account.id} action={updateAccount.bind(null, account.id)} className="grid gap-2 rounded-2xl border border-slate-800 bg-slate-950 p-3 md:grid-cols-[1fr_160px_auto]">
+              <input name="name" defaultValue={account.name} required className="min-w-0 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-slate-500" />
+              <select name="kind" defaultValue={account.kind} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white">
+                <option value="bank">Conta</option>
+                <option value="cash">Dinheiro</option>
+                <option value="credit_card">Cartão</option>
+              </select>
+              <button type="submit" className="rounded-xl border border-slate-700 px-3 py-2 text-sm font-medium text-white">Salvar</button>
+            </form>
           ))}
         </div>
       </Modal>
@@ -321,7 +416,7 @@ export default function FinancePanel({ categories, transactions, metrics, filter
       </Modal>
 
       <Modal title="Editar lançamento" open={Boolean(editing)} onClose={() => setEditing(null)}>
-        {editing ? <TransactionForm categories={categories} transaction={editing} onEditCategories={() => setCategoryModal(true)} /> : null}
+        {editing ? <TransactionForm categories={categories} accounts={accounts} transaction={editing} onEditCategories={() => setCategoryModal(true)} onEditAccounts={() => setAccountModal(true)} /> : null}
       </Modal>
     </div>
   );

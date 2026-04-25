@@ -14,7 +14,7 @@ export default function PublicHeader() {
 
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
         >
           <LogIn size={16} />
           Entrar
