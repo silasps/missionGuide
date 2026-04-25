@@ -34,7 +34,7 @@ export default async function PerfilAdminPage({ searchParams }: Props) {
 ) : null}
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[minmax(0,1fr)_md:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px]]">
+    <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div>
         <div className="mb-8">
           <p className="text-sm text-slate-400">Admin</p>

@@ -39,7 +39,7 @@ export default async function ParceirosAdminPage() {
                 key={partner.id}
                 className="rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
               >
-                <div className="grid gap-6 xl:grid-cols-[1fr_xl:grid-cols-[1fr_380px]]">
+                <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
                   <div>
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
