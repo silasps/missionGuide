@@ -1,0 +1,72 @@
+export type PostStatus = "draft" | "published";
+export type PostType = "text" | "image" | "video" | "carousel";
+
+export type Post = {
+  id: string;
+  profile_id: string;
+  title: string;
+  slug: string | null;
+  excerpt: string | null;
+  content: string | null;
+  cover_url: string | null;
+  post_type: PostType;
+  status: PostStatus;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Profile = {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  birth_date: string | null;
+  phone: string | null;
+  is_public: boolean;
+  missionary_mode: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Follow = {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+};
+
+export type Donation = {
+  id: string;
+  donor_id: string | null;
+  missionary_id: string;
+  amount: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type FinanceCategory = {
+  id: string;
+  profile_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FinanceTransaction = {
+  id: string;
+  profile_id: string;
+  category_id: string | null;
+  date: string;
+  description: string;
+  amount: number | null;
+  currency: "BRL" | "USD" | "EUR";
+  type: "income" | "expense";
+  tithe_eligible: boolean;
+  created_at: string;
+  updated_at: string;
+};

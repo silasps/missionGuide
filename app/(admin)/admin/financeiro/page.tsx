@@ -1,0 +1,165 @@
+import { getCurrentProfile } from "@/lib/current-profile";
+import FinancePanel, { type FinanceCategory, type FinanceTransaction } from "./finance-panel";
+
+const DEFAULT_CATEGORIES = [
+  "Dízimo",
+  "Carro",
+  "Compras",
+  "Roupa",
+  "Utensílios de casa",
+  "Alimentação fora de casa",
+];
+
+function monthBounds() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
+
+function isMissingFinanceSchema(error: { message?: string } | null) {
+  return Boolean(
+    error?.message &&
+      ((error.message.includes("schema cache") &&
+        (error.message.includes("finance_categories") ||
+          error.message.includes("finance_transactions"))) ||
+        error.message.includes("column finance_transactions.type does not exist") ||
+        error.message.includes("column finance_transactions.tithe_eligible does not exist") ||
+        error.message.includes("column finance_transactions.currency does not exist")),
+  );
+}
+
+type Props = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function FinanceiroPage({ searchParams }: Props) {
+  const { supabase, profile } = await getCurrentProfile();
+  const params = (await searchParams) ?? {};
+  const { start: monthStart, end: monthEnd } = monthBounds();
+
+  const from = String(params.from || "");
+  const to = String(params.to || "");
+  const category = String(params.category || "");
+  const type = String(params.type || "");
+  const currencyParam = String(params.currency || "BRL").toUpperCase();
+  const currency = ["BRL", "USD", "EUR"].includes(currencyParam) ? currencyParam : "BRL";
+
+  let categoriesQuery = supabase
+    .from("finance_categories")
+    .select("id, name")
+    .eq("profile_id", profile.id)
+    .order("name", { ascending: true });
+
+  const { data: initialCategories, error: categoriesError } = await categoriesQuery;
+
+  if (isMissingFinanceSchema(categoriesError)) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+          Execute <span className="font-mono">supabase/financeiro.sql</span> no Supabase.
+        </div>
+      </div>
+    );
+  }
+
+  if (categoriesError) throw new Error(categoriesError.message);
+
+  const existingCategoryNames = new Set((initialCategories ?? []).map((category) => category.name));
+  const missingDefaultCategories = DEFAULT_CATEGORIES.filter((name) => !existingCategoryNames.has(name));
+
+  if (missingDefaultCategories.length) {
+    await supabase.from("finance_categories").insert(
+      missingDefaultCategories.map((name) => ({
+        profile_id: profile.id,
+        name,
+      })),
+    );
+
+    categoriesQuery = supabase
+      .from("finance_categories")
+      .select("id, name")
+      .eq("profile_id", profile.id)
+      .order("name", { ascending: true });
+  }
+
+  const { data: categories, error: finalCategoriesError } = await categoriesQuery;
+  if (finalCategoriesError) throw new Error(finalCategoriesError.message);
+
+  let transactionsQuery = supabase
+    .from("finance_transactions")
+    .select("id, date, description, amount, currency, category_id, type, tithe_eligible, finance_categories(id, name)")
+    .eq("profile_id", profile.id)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (from) transactionsQuery = transactionsQuery.gte("date", from);
+  if (to) transactionsQuery = transactionsQuery.lte("date", to);
+  if (category) transactionsQuery = transactionsQuery.eq("category_id", category);
+  if (type === "income" || type === "expense") transactionsQuery = transactionsQuery.eq("type", type);
+  transactionsQuery = transactionsQuery.eq("currency", currency);
+
+  const { data: transactions, error: transactionsError } = await transactionsQuery;
+
+  if (isMissingFinanceSchema(transactionsError)) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+          Rode novamente <span className="font-mono">supabase/financeiro.sql</span> no Supabase
+          para adicionar as colunas novas do financeiro.
+        </div>
+      </div>
+    );
+  }
+
+  if (transactionsError) throw new Error(transactionsError.message);
+
+  const typedCategories = (categories ?? []) as FinanceCategory[];
+  const typedTransactions = (transactions ?? []) as unknown as FinanceTransaction[];
+  const monthTransactions = typedTransactions.filter((item) => item.date >= monthStart && item.date <= monthEnd && item.currency === currency);
+  const income = monthTransactions
+    .filter((item) => item.type === "income")
+    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+  const expenses = monthTransactions
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+  const titheBase = monthTransactions
+    .filter((item) => item.type === "income" && item.tithe_eligible)
+    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+
+  const expenseByCategory = monthTransactions
+    .filter((item) => item.type === "expense")
+    .reduce<Record<string, number>>((acc, item) => {
+      const name = Array.isArray(item.finance_categories)
+        ? item.finance_categories[0]?.name
+        : item.finance_categories?.name;
+      const key = name || "Sem categoria";
+      acc[key] = (acc[key] ?? 0) + Number(item.amount ?? 0);
+      return acc;
+    }, {});
+
+  const topExpenses = Object.entries(expenseByCategory)
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  return (
+    <FinancePanel
+      categories={typedCategories}
+      transactions={typedTransactions}
+      metrics={{
+        income,
+        expenses,
+        balance: income - expenses,
+        tithe: titheBase * 0.1,
+        topExpenses,
+      }}
+      filters={{ from, to, category, type, currency }}
+    />
+  );
+}
