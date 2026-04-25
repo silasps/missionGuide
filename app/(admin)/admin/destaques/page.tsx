@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ExternalLink, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DestaquesAdminPage() {
@@ -35,7 +36,7 @@ export default async function DestaquesAdminPage() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-white">Destaques da missão</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Destaques da missão</h1>
           <p className="mt-2 text-sm text-slate-400">
             Gerencie os desafios e destaques que aparecem na home e na página de parceria.
           </p>
@@ -54,7 +55,7 @@ export default async function DestaquesAdminPage() {
           {highlights.map((item) => (
             <article
               key={item.id}
-              className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-xl"
+              className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
             >
               {item.cover_url ? (
                 <img
@@ -102,17 +103,17 @@ export default async function DestaquesAdminPage() {
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     href={`/admin/destaques/${item.id}/editar`}
-                    className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                   >
-                    Editar
+                    <Pencil size={15} />Editar
                   </Link>
 
                   {profile?.username ? (
                     <Link
                       href={`/m/${profile.username}/destaques/${item.id}`}
-                      className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                     >
-                      Ver público
+                      <ExternalLink size={15} />Ver público
                     </Link>
                   ) : null}
                 </div>
@@ -121,7 +122,7 @@ export default async function DestaquesAdminPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900 p-10 text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-8 text-slate-400">
           Nenhum destaque cadastrado ainda.
         </div>
       )}

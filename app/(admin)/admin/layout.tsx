@@ -28,22 +28,22 @@ export default async function AdminLayout({
     .maybeSingle();
 
   const missionaryMode = profile?.missionary_mode ?? false;
-  const navLink = "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-orange-500/10 hover:text-white [&>svg]:text-orange-400";
+  const navLink = "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-orange-500/10 hover:text-white [&>svg]:text-orange-400";
 
   return (
     <div className="admin-shell min-h-screen bg-slate-950 text-white">
       <div className="admin-shell flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r border-orange-500/20 bg-slate-950 lg:block">
-          <div className="p-6">
+        <aside className="hidden w-64 shrink-0 border-r border-orange-500/20 bg-slate-950 lg:block">
+          <div className="p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500">
-                <HandHeart size={20} className="text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500">
+                <HandHeart size={18} className="text-white" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-orange-300">
                   Painel
                 </p>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-base font-semibold text-white">
                   Sistema Missionário
                 </h2>
               </div>
@@ -52,7 +52,7 @@ export default async function AdminLayout({
               {profile?.display_name || user.email}
             </p>
 
-            <nav className="mt-8 flex flex-col gap-1">
+            <nav className="mt-7 flex flex-col gap-1">
               <p className="mb-1 px-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Geral
               </p>
@@ -119,7 +119,7 @@ export default async function AdminLayout({
 
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="relative z-50 border-b border-orange-500/20 bg-slate-950/95 backdrop-blur">
-            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
+            <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <AdminMenuButton missionaryMode={missionaryMode} />
                 <div>
@@ -134,7 +134,7 @@ export default async function AdminLayout({
             </div>
           </header>
 
-          <main className="admin-page-content flex-1 px-4 py-6 pb-24 transition sm:px-6">{children}</main>
+          <main className="admin-page-content flex-1 px-4 py-5 pb-20 transition sm:px-6">{children}</main>
         </div>
       </div>
     </div>

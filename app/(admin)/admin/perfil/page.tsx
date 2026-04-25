@@ -38,7 +38,7 @@ export default async function PerfilAdminPage({ searchParams }: Props) {
       <div>
         <div className="mb-8">
           <p className="text-sm text-slate-400">Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-white">Perfil público</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Perfil público</h1>
           <p className="mt-2 text-sm text-slate-400">
             Configure identidade, história e formas de participação.
           </p>
@@ -46,7 +46,7 @@ export default async function PerfilAdminPage({ searchParams }: Props) {
 
         <form
           action={updateProfile}
-          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl"
+          className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl"
         >
           <ImageUploadCropField
             label="Foto do perfil"
@@ -329,7 +329,7 @@ export default async function PerfilAdminPage({ searchParams }: Props) {
         </form>
       </div>
 
-      <aside className="h-fit rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+      <aside className="h-fit rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
         <p className="text-sm text-slate-400">Preview</p>
 
         <div className="mt-5">
@@ -340,12 +340,12 @@ export default async function PerfilAdminPage({ searchParams }: Props) {
               className="h-24 w-24 rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-800 text-xl font-semibold text-white">
               {String(profile.display_name || "SM").slice(0, 2).toUpperCase()}
             </div>
           )}
 
-          <h2 className="mt-5 text-2xl font-bold text-white">
+          <h2 className="mt-5 text-xl font-semibold text-white">
             {profile.display_name || "Sistema Missionário"}
           </h2>
 

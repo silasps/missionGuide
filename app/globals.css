@@ -27,9 +27,60 @@ a {
   text-decoration: none;
 }
 
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  background-color: #ffffff !important;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 3px rgb(249 115 22 / 0.22) !important;
+  color: #0f172a !important;
+  outline: none !important;
+}
+
 img {
   display: block;
   max-width: 100%;
+}
+
+.route-loading-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.route-loading-shimmer::after {
+  animation: route-loading-shimmer 1.35s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.42),
+    transparent
+  );
+  content: "";
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+}
+
+html[data-theme="dark"] .route-loading-shimmer::after,
+.bg-slate-950 .route-loading-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.11),
+    transparent
+  );
+}
+
+@keyframes route-loading-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-shimmer::after {
+    animation: none;
+  }
 }
 
 .scrollbar-none {

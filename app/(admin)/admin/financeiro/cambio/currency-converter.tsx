@@ -20,7 +20,6 @@ export default function CurrencyConverter() {
 
   useEffect(() => {
     let active = true;
-    setError("");
     fetch(`https://open.er-api.com/v6/latest/${base}`)
       .then((response) => response.json())
       .then((json: RatesResponse) => {
@@ -29,6 +28,7 @@ export default function CurrencyConverter() {
           setError("Não foi possível buscar a cotação agora.");
           return;
         }
+        setError("");
         setData(json);
       })
       .catch(() => {
@@ -53,30 +53,30 @@ export default function CurrencyConverter() {
         Voltar para financeiro
       </Link>
 
-      <div className="mt-6 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+      <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
         <p className="text-sm text-slate-400">Câmbio</p>
-        <h1 className="mt-2 text-3xl font-bold text-white">Conversor de moedas</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">Conversor de moedas</h1>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
           <div>
             <label className="mb-2 block text-sm text-slate-300">Valor</label>
-            <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500" />
+            <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500" />
           </div>
           <div>
             <label className="mb-2 block text-sm text-slate-300">De</label>
-            <select value={base} onChange={(event) => setBase(event.target.value)} className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
+            <select value={base} onChange={(event) => setBase(event.target.value)} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500">
               {CURRENCIES.map((currency) => <option key={currency}>{currency}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-2 block text-sm text-slate-300">Para</label>
-            <select value={target} onChange={(event) => setTarget(event.target.value)} className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-slate-500">
+            <select value={target} onChange={(event) => setTarget(event.target.value)} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500">
               {CURRENCIES.map((currency) => <option key={currency}>{currency}</option>)}
             </select>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <p className="text-xs text-slate-400">Resultado</p>
-            <p className="mt-2 text-2xl font-bold text-white">
+            <p className="mt-2 text-lg font-semibold text-white">
               {converted === null ? "..." : new Intl.NumberFormat("pt-BR", { style: "currency", currency: target }).format(converted)}
             </p>
           </div>

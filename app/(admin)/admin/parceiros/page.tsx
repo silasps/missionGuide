@@ -23,7 +23,7 @@ export default async function ParceirosAdminPage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-8">
         <p className="text-sm text-slate-400">Admin</p>
-        <h1 className="mt-2 text-3xl font-bold text-white">Parceiros</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-white">Parceiros</h1>
         <p className="mt-2 text-sm text-slate-400">
           Gerencie quem demonstrou interesse em apoiar sua missão.
         </p>
@@ -37,7 +37,7 @@ export default async function ParceirosAdminPage() {
             return (
               <article
                 key={partner.id}
-                className="rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
               >
                 <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
                   <div>
@@ -100,7 +100,7 @@ export default async function ParceirosAdminPage() {
                     ) : null}
                   </div>
 
-                  <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
                     <h3 className="text-lg font-semibold text-white">
                       Ações rápidas
                     </h3>
@@ -165,7 +165,7 @@ export default async function ParceirosAdminPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900 p-10 text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-8 text-slate-400">
           Nenhum parceiro cadastrado ainda.
         </div>
       )}

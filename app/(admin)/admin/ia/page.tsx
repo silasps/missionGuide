@@ -17,9 +17,9 @@ export default async function IAPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-6 shadow-2xl">
         <p className="text-sm text-slate-400">Copiloto IA</p>
-        <h1 className="mt-2 text-3xl font-bold text-white">
+        <h1 className="mt-2 text-2xl font-semibold text-white">
           Criar com IA
         </h1>
         <p className="mt-3 max-w-2xl text-slate-400">
@@ -37,7 +37,7 @@ export default async function IAPage() {
         </div>
       </div>
 
-      <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+      <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-xl font-semibold text-white">Rascunhos recentes</h2>
 
         {generations?.length ? (

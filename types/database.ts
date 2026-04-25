@@ -62,6 +62,7 @@ export type FinanceAccount = {
   profile_id: string;
   name: string;
   kind: "bank" | "cash" | "credit_card";
+  currency: "BRL" | "USD" | "EUR";
   created_at: string;
   updated_at: string;
 };
@@ -74,6 +75,8 @@ export type FinanceTransaction = {
   date: string;
   due_date: string | null;
   description: string;
+  location: string | null;
+  notes: string | null;
   amount: number | null;
   currency: "BRL" | "USD" | "EUR";
   type: "income" | "expense";

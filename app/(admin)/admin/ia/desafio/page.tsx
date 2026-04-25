@@ -7,7 +7,7 @@ export default function IADesafioPage() {
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">Copiloto IA</p>
-          <h1 className="mt-2 text-3xl font-bold text-white">
+          <h1 className="mt-2 text-2xl font-semibold text-white">
             Criar desafio com IA
           </h1>
           <p className="mt-2 text-sm text-slate-400">
@@ -25,7 +25,7 @@ export default function IADesafioPage() {
 
       <form
         action={createAIDraft}
-        className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl"
+        className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl"
       >
         <input type="hidden" name="generation_type" value="desafio" />
 

@@ -18,7 +18,7 @@ export default async function SeguindoPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Seguindo</h1>
+        <h1 className="text-2xl font-semibold text-white">Seguindo</h1>
         <p className="mt-2 text-sm text-slate-400">
           Missionários que você acompanha.
         </p>
@@ -73,7 +73,7 @@ export default async function SeguindoPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
           <p className="text-lg font-semibold text-white">
             Você não segue ninguém ainda
           </p>

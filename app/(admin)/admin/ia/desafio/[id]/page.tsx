@@ -40,7 +40,7 @@ export default async function IADesafioResultPage({ params }: Props) {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">Copiloto IA</p>
-          <h1 className="mt-2 text-3xl font-bold text-white">
+          <h1 className="mt-2 text-2xl font-semibold text-white">
             {item.title || "Rascunho de desafio"}
           </h1>
         </div>
@@ -54,7 +54,7 @@ export default async function IADesafioResultPage({ params }: Props) {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-xl font-semibold text-white">Respostas fornecidas</h2>
 
           <div className="mt-5 space-y-5 text-sm text-slate-300">
@@ -90,7 +90,7 @@ export default async function IADesafioResultPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-xl font-semibold text-white">Estrutura sugerida</h2>
 
           <div className="mt-5 space-y-5 text-sm text-slate-300">

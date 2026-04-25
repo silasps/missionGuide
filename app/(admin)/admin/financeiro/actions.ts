@@ -31,11 +31,18 @@ function cleanMode(value: FormDataEntryValue | null) {
     : "normal";
 }
 
+function revalidateFinance() {
+  revalidatePath("/admin/financeiro");
+  revalidatePath("/admin/financeiro/ajustes");
+}
+
 export async function addTransaction(fd: FormData) {
   const { supabase, profile } = await getCurrentProfile();
 
   const date = cleanString(fd.get("date"));
   const description = cleanString(fd.get("description"));
+  const location = cleanString(fd.get("location"));
+  const notes = cleanString(fd.get("notes"));
   const categoryId = cleanString(fd.get("category_id"));
   const accountId = cleanString(fd.get("account_id"));
   const amount = parseAmount(fd.get("amount"));
@@ -55,6 +62,8 @@ export async function addTransaction(fd: FormData) {
     profile_id: profile.id,
     date,
     description,
+    location: location || null,
+    notes: notes || null,
     amount,
     currency,
     type,
@@ -67,7 +76,7 @@ export async function addTransaction(fd: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function updateTransaction(id: string, fd: FormData) {
@@ -75,6 +84,8 @@ export async function updateTransaction(id: string, fd: FormData) {
 
   const date = cleanString(fd.get("date"));
   const description = cleanString(fd.get("description"));
+  const location = cleanString(fd.get("location"));
+  const notes = cleanString(fd.get("notes"));
   const categoryId = cleanString(fd.get("category_id"));
   const accountId = cleanString(fd.get("account_id"));
   const amount = parseAmount(fd.get("amount"));
@@ -95,6 +106,8 @@ export async function updateTransaction(id: string, fd: FormData) {
     .update({
       date,
       description,
+      location: location || null,
+      notes: notes || null,
       amount,
       currency,
       type,
@@ -109,7 +122,7 @@ export async function updateTransaction(id: string, fd: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function deleteTransaction(id: string) {
@@ -123,7 +136,7 @@ export async function deleteTransaction(id: string) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function addCategory(fd: FormData) {
@@ -139,13 +152,35 @@ export async function addCategory(fd: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
+}
+
+export async function createQuickCategory(name: string) {
+  const { supabase, profile } = await getCurrentProfile();
+  const safeName = cleanString(name);
+
+  if (!safeName) throw new Error("Informe o nome da categoria.");
+
+  const { data, error } = await supabase
+    .from("finance_categories")
+    .insert({
+      profile_id: profile.id,
+      name: safeName,
+    })
+    .select("id, name")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  revalidateFinance();
+  return data;
 }
 
 export async function addAccount(fd: FormData) {
   const { supabase, profile } = await getCurrentProfile();
   const name = cleanString(fd.get("name"));
   const kind = cleanString(fd.get("kind")) || "bank";
+  const currency = cleanCurrency(fd.get("currency"));
 
   if (!name) throw new Error("Informe o nome da conta.");
 
@@ -153,29 +188,31 @@ export async function addAccount(fd: FormData) {
     profile_id: profile.id,
     name,
     kind,
+    currency,
   });
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function updateAccount(id: string, fd: FormData) {
   const { supabase, profile } = await getCurrentProfile();
   const name = cleanString(fd.get("name"));
   const kind = cleanString(fd.get("kind")) || "bank";
+  const currency = cleanCurrency(fd.get("currency"));
 
   if (!name) throw new Error("Informe o nome da conta.");
 
   const { error } = await supabase
     .from("finance_accounts")
-    .update({ name, kind })
+    .update({ name, kind, currency })
     .eq("id", id)
     .eq("profile_id", profile.id);
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function updateCategory(id: string, fd: FormData) {
@@ -192,7 +229,7 @@ export async function updateCategory(id: string, fd: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
 }
 
 export async function deleteCategory(id: string) {
@@ -214,5 +251,27 @@ export async function deleteCategory(id: string) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin/financeiro");
+  revalidateFinance();
+}
+
+export async function deleteAccount(id: string) {
+  const { supabase, profile } = await getCurrentProfile();
+
+  const { error: unlinkError } = await supabase
+    .from("finance_transactions")
+    .update({ account_id: null })
+    .eq("account_id", id)
+    .eq("profile_id", profile.id);
+
+  if (unlinkError) throw new Error(unlinkError.message);
+
+  const { error } = await supabase
+    .from("finance_accounts")
+    .delete()
+    .eq("id", id)
+    .eq("profile_id", profile.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidateFinance();
 }

@@ -20,7 +20,7 @@ export default async function NovoDestaquePage() {
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">Admin / Destaques</p>
-          <h1 className="mt-2 text-3xl font-bold text-white">Novo destaque</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Novo destaque</h1>
         </div>
 
         <Link
@@ -31,7 +31,7 @@ export default async function NovoDestaquePage() {
         </Link>
       </div>
 
-      <form action={createHighlight} className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+      <form action={createHighlight} className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
         <ImageUploadCropField
           label="Imagem do destaque"
           name="cover_url"

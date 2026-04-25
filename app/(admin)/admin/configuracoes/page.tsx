@@ -7,13 +7,13 @@ export default async function ConfiguracoesPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Configurações</h1>
+        <h1 className="text-2xl font-semibold text-white">Configurações</h1>
         <p className="mt-2 text-sm text-slate-400">
           Gerencie as opções da sua conta.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
         <div className="flex items-start justify-between gap-6">
           <div>
             <h2 className="text-lg font-semibold text-white">Modo Missionário</h2>

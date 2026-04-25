@@ -11,13 +11,14 @@ const DEFAULT_CATEGORIES = [
   "Saldo inicial",
 ];
 
-function monthBounds() {
-  const now = new Date();
+function monthBounds(month?: string) {
+  const now = month ? new Date(`${month}-02T00:00:00`) : new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   return {
     firstDay: firstDay.toISOString().slice(0, 10),
     lastDay: lastDay.toISOString().slice(0, 10),
+    month: firstDay.toISOString().slice(0, 7),
   };
 }
 
@@ -32,6 +33,9 @@ function isMissingFinanceSchema(error: { message?: string } | null) {
         error.message.includes("column finance_transactions.currency does not exist") ||
         error.message.includes("finance_accounts") ||
         error.message.includes("column finance_transactions.account_id does not exist") ||
+        error.message.includes("column finance_transactions.location does not exist") ||
+        error.message.includes("column finance_transactions.notes does not exist") ||
+        error.message.includes("column finance_accounts.currency does not exist") ||
         error.message.includes("column finance_transactions.mode does not exist")),
   );
 }
@@ -43,7 +47,8 @@ type Props = {
 export default async function FinanceiroPage({ searchParams }: Props) {
   const { supabase, profile } = await getCurrentProfile();
   const params = (await searchParams) ?? {};
-  const { firstDay: monthStart, lastDay: monthEnd } = monthBounds();
+  const monthParam = String(params.month || "");
+  const { firstDay: monthStart, lastDay: monthEnd, month } = monthBounds(/^\d{4}-\d{2}$/.test(monthParam) ? monthParam : undefined);
 
   const from = String(params.from || "");
   const to = String(params.to || "");
@@ -63,8 +68,8 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   if (isMissingFinanceSchema(categoriesError)) {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
-        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+        <h1 className="text-2xl font-semibold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
           Execute <span className="font-mono">supabase/financeiro.sql</span> no Supabase.
         </div>
       </div>
@@ -94,18 +99,18 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   const { data: categories, error: finalCategoriesError } = await categoriesQuery;
   if (finalCategoriesError) throw new Error(finalCategoriesError.message);
 
-  let accountsQuery = supabase
+  const accountsQuery = supabase
     .from("finance_accounts")
-    .select("id, name, kind")
+    .select("id, name, kind, currency")
     .eq("profile_id", profile.id)
     .order("name", { ascending: true });
 
-  const { data: initialAccounts, error: accountsError } = await accountsQuery;
+  const { error: accountsError } = await accountsQuery;
   if (isMissingFinanceSchema(accountsError)) {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
-        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+        <h1 className="text-2xl font-semibold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
           Rode novamente <span className="font-mono">supabase/financeiro.sql</span> no Supabase.
         </div>
       </div>
@@ -113,25 +118,12 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   }
   if (accountsError) throw new Error(accountsError.message);
 
-  if (!initialAccounts?.length) {
-    await supabase.from("finance_accounts").insert({
-      profile_id: profile.id,
-      name: "Conta principal",
-      kind: "bank",
-    });
-    accountsQuery = supabase
-      .from("finance_accounts")
-      .select("id, name, kind")
-      .eq("profile_id", profile.id)
-      .order("name", { ascending: true });
-  }
-
   const { data: accounts, error: finalAccountsError } = await accountsQuery;
   if (finalAccountsError) throw new Error(finalAccountsError.message);
 
   let transactionsQuery = supabase
     .from("finance_transactions")
-    .select("id, date, description, amount, currency, category_id, account_id, type, mode, due_date, tithe_eligible, finance_categories(id, name), finance_accounts(id, name, kind)")
+    .select("id, date, description, location, notes, amount, currency, category_id, account_id, type, mode, due_date, tithe_eligible, finance_categories(id, name), finance_accounts(id, name, kind, currency)")
     .eq("profile_id", profile.id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -147,8 +139,8 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   if (isMissingFinanceSchema(transactionsError)) {
     return (
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-bold text-white">Financeiro</h1>
-        <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
+        <h1 className="text-2xl font-semibold text-white">Financeiro</h1>
+        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-100">
           Rode novamente <span className="font-mono">supabase/financeiro.sql</span> no Supabase
           para adicionar as colunas novas do financeiro.
         </div>
@@ -204,7 +196,7 @@ export default async function FinanceiroPage({ searchParams }: Props) {
         tithe: titheBase * 0.1,
         topExpenses,
       }}
-      filters={{ from, to, category, type, currency }}
+      filters={{ from, to, category, type, currency, month }}
     />
   );
 }

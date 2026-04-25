@@ -23,13 +23,13 @@ export default async function NovaDoacaoPage() {
         >
           ← Voltar
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-white">Registrar doação</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-white">Registrar doação</h1>
         <p className="mt-2 text-sm text-slate-400">
           Registre uma doação que você fez para um missionário.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
         <form action={createDonation} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">

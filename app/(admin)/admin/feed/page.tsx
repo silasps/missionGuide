@@ -37,7 +37,7 @@ export default async function FeedPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Feed</h1>
+        <h1 className="text-2xl font-semibold text-white">Feed</h1>
         <p className="mt-2 text-sm text-slate-400">
           Atualizações de quem você segue.
         </p>
@@ -74,7 +74,7 @@ export default async function FeedPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
           <p className="text-lg font-semibold text-white">Seu feed está vazio</p>
           <p className="mt-2 text-sm">
             Siga missionários para ver as atualizações deles aqui.

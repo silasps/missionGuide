@@ -15,10 +15,12 @@ create table if not exists public.finance_accounts (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
   kind text not null default 'bank',
+  currency text not null default 'BRL',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint finance_accounts_name_not_blank check (length(trim(name)) > 0),
   constraint finance_accounts_kind_check check (kind in ('bank', 'cash', 'credit_card')),
+  constraint finance_accounts_currency_check check (currency in ('BRL', 'USD', 'EUR')),
   constraint finance_accounts_profile_name_unique unique (profile_id, name)
 );
 
@@ -30,6 +32,8 @@ create table if not exists public.finance_transactions (
   date date not null default current_date,
   due_date date,
   description text not null,
+  location text,
+  notes text,
   amount numeric(12, 2),
   currency text not null default 'BRL',
   type text not null default 'expense',
@@ -43,11 +47,20 @@ create table if not exists public.finance_transactions (
   constraint finance_transactions_mode_check check (mode in ('normal', 'initial_balance', 'credit_purchase', 'fixed_expense'))
 );
 
+alter table public.finance_accounts
+  add column if not exists currency text not null default 'BRL';
+
 alter table public.finance_transactions
   add column if not exists account_id uuid references public.finance_accounts(id) on delete set null;
 
 alter table public.finance_transactions
   add column if not exists due_date date;
+
+alter table public.finance_transactions
+  add column if not exists location text;
+
+alter table public.finance_transactions
+  add column if not exists notes text;
 
 alter table public.finance_transactions
   add column if not exists currency text not null default 'BRL';

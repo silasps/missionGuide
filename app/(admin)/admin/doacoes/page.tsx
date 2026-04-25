@@ -21,7 +21,7 @@ export default async function DoacoesPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Minhas doações</h1>
+          <h1 className="text-2xl font-semibold text-white">Minhas doações</h1>
           <p className="mt-2 text-sm text-slate-400">
             Histórico de contribuições que você registrou.
           </p>
@@ -37,7 +37,7 @@ export default async function DoacoesPage() {
       {total > 0 && (
         <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
           <p className="text-sm text-slate-400">Total registrado</p>
-          <p className="mt-1 text-3xl font-bold text-white">
+          <p className="mt-1 text-2xl font-semibold text-white">
             R$ {total.toFixed(2).replace(".", ",")}
           </p>
         </div>
@@ -86,7 +86,7 @@ export default async function DoacoesPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
           <p className="text-lg font-semibold text-white">Nenhuma doação registrada</p>
           <p className="mt-2 text-sm">
             Registre suas contribuições para acompanhar o histórico.

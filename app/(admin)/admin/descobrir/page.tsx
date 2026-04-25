@@ -33,7 +33,7 @@ export default async function DescobrirPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Descobrir missionários</h1>
+        <h1 className="text-2xl font-semibold text-white">Descobrir missionários</h1>
         <p className="mt-2 text-sm text-slate-400">
           Encontre pessoas para seguir e acompanhar no seu feed.
         </p>
@@ -77,7 +77,7 @@ export default async function DescobrirPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
           Nenhum missionário disponível por enquanto.
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AdminThemeToggle from "@/components/admin-theme-toggle";
 import LogoutButton from "@/components/logout-button";
@@ -27,10 +27,12 @@ type Props = {
   missionaryMode: boolean;
 };
 
-const linkClass = "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-orange-500/10 [&>svg]:text-orange-400";
+const linkClass = "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-200 hover:bg-orange-500/10 [&>svg]:text-orange-400";
 
 export default function AdminMenuButton({ missionaryMode }: Props) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("admin-menu-open", open);
@@ -40,15 +42,36 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
   return (
     <div className="lg:hidden">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 lg:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 lg:hidden"
         aria-label={open ? "Fechar menu" : "Abrir menu"}
       >
-        {open ? <X size={20} /> : <Menu size={20} />}
+        {open ? <X size={18} /> : <Menu size={18} />}
       </button>
 
       {open ? (
@@ -56,13 +79,16 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
           <button
             type="button"
             data-admin-menu-open="true"
-            className="fixed inset-x-0 bottom-0 top-[73px] z-[9998] bg-slate-950/85 backdrop-blur-2xl"
+            className="fixed inset-x-0 bottom-0 top-[61px] z-[9998] bg-slate-950/85 backdrop-blur-2xl"
             aria-label="Fechar menu"
             onClick={() => setOpen(false)}
             style={{ WebkitBackdropFilter: "blur(24px)", backdropFilter: "blur(24px)" }}
           />
 
-          <div className="fixed left-0 right-0 top-[73px] z-[9999] border-b border-orange-500/20 bg-slate-950/95 p-3 shadow-2xl backdrop-blur">
+          <div
+            ref={menuRef}
+            className="fixed left-0 right-0 top-[61px] z-[9999] border-b border-orange-500/20 bg-slate-950/95 p-3 shadow-2xl backdrop-blur"
+          >
             <div className="mx-auto max-w-md">
               <nav className="grid grid-cols-2 gap-1" onClick={() => setOpen(false)}>
                 <Link href="/admin/feed" className={linkClass}><Home size={16} />Feed</Link>

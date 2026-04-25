@@ -194,7 +194,7 @@ export default function ImageUploadCropField({
 
       {open && imageSrc ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-[calc(100vw-2rem)] max-w-2xl rounded-3xl bg-slate-900 p-5 shadow-2xl">
+          <div className="w-[calc(100vw-2rem)] max-w-2xl rounded-2xl bg-slate-900 p-5 shadow-2xl">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-white">Ajustar imagem</h3>
               <p className="mt-1 text-sm text-slate-400">
