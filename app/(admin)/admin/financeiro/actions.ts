@@ -187,17 +187,39 @@ export async function addAccount(fd: FormData) {
   const name = cleanString(fd.get("name"));
   const kind = cleanString(fd.get("kind")) || "bank";
   const currency = cleanCurrency(fd.get("currency"));
+  const initialBalance = parseAmount(fd.get("initial_balance")) ?? 0;
 
   if (!name) throw new Error("Informe o nome da conta.");
 
-  const { error } = await supabase.from("finance_accounts").insert({
-    profile_id: profile.id,
-    name,
-    kind,
-    currency,
-  });
+  const { data: account, error } = await supabase
+    .from("finance_accounts")
+    .insert({
+      profile_id: profile.id,
+      name,
+      kind,
+      currency,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
+
+  if (account && initialBalance !== 0) {
+    const { error: balanceError } = await supabase.from("finance_transactions").insert({
+      profile_id: profile.id,
+      account_id: account.id,
+      category_id: null,
+      date: new Date().toISOString().slice(0, 10),
+      description: `Saldo inicial - ${name}`,
+      amount: Math.abs(initialBalance),
+      currency,
+      type: initialBalance >= 0 ? "income" : "expense",
+      mode: "initial_balance",
+      tithe_eligible: false,
+    });
+
+    if (balanceError) throw new Error(balanceError.message);
+  }
 
   revalidateFinance();
 }
