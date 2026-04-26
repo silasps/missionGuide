@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpDown, BarChart3, Building2, Home, Pencil, Search, Settings, Trash2, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpDown, BarChart3, Building2, Home, Pencil, Plus, Search, Settings, Trash2, X } from "lucide-react";
 import {
   addAccount,
   addCategory,
@@ -123,6 +123,12 @@ function accountName(transaction: FinanceTransaction) {
   if (!account) return "Sem conta";
   if (Array.isArray(account)) return account[0]?.name ?? "Sem conta";
   return account.name;
+}
+
+function accountKindLabel(kind: string) {
+  if (kind === "credit_card") return "Cartão";
+  if (kind === "cash") return "Dinheiro";
+  return "Conta";
 }
 
 function Modal({
@@ -325,6 +331,8 @@ export default function FinancePanel({ categories, accounts, transactions, metri
   const [transactionModal, setTransactionModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
+  const [accountCreateModal, setAccountCreateModal] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(null);
   const [accountRequiredModal, setAccountRequiredModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
   const [editing, setEditing] = useState<FinanceTransaction | null>(null);
@@ -615,7 +623,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
             type="button"
             onClick={() => {
               setAccountRequiredModal(false);
-              setAccountModal(true);
+              setAccountCreateModal(true);
             }}
             className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900"
           >
@@ -666,55 +674,38 @@ export default function FinancePanel({ categories, accounts, transactions, metri
 
       <Modal title="Contas, bancos e cartões" open={accountModal} onClose={() => setAccountModal(false)}>
         <div className="space-y-5">
-          <section className="rounded-2xl border border-orange-500/25 bg-orange-500/10 p-4">
-            <div className="mb-3">
-              <h3 className="text-sm font-semibold text-white">Cadastrar nova conta</h3>
-              <p className="mt-1 text-xs text-slate-400">Use para adicionar banco, dinheiro em mãos ou cartão.</p>
-            </div>
-            <form action={addAccount} className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_120px_100px_auto]">
-              <input name="name" required placeholder="Ex: Nubank, Caixa, Visa" className="min-w-0 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-slate-500" />
-              <select name="kind" className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white">
-                <option value="bank">Conta</option>
-                <option value="cash">Dinheiro</option>
-                <option value="credit_card">Cartão</option>
-              </select>
-              <select name="currency" className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white">
-                {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
-              </select>
-              <button type="submit" className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600">Adicionar</button>
-            </form>
-          </section>
-
           <section>
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-white">Contas cadastradas</h3>
-              <span className="text-xs text-slate-500">{accounts.length} {accounts.length === 1 ? "item" : "itens"}</span>
+              <button
+                type="button"
+                onClick={() => setAccountCreateModal(true)}
+                className="inline-flex items-center gap-1 rounded-xl bg-orange-500 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-600"
+              >
+                <Plus size={14} />Adicionar
+              </button>
             </div>
             <div className="space-y-2">
               {accounts.map((account) => (
-                <form key={account.id} action={updateAccount.bind(null, account.id)} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 p-2">
+                <div key={account.id} className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 text-base font-semibold text-orange-200">
+                    {currencySymbol(account.currency)}
+                  </div>
                   <div className="min-w-0">
-                    <input name="name" defaultValue={account.name} required className="min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-white outline-none focus:border-slate-700" />
-                    <div className="grid min-w-0 gap-2 px-2 pt-1 sm:grid-cols-[120px_100px]">
-                      <select name="kind" defaultValue={account.kind} className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1.5 text-xs text-slate-300">
-                        <option value="bank">Conta</option>
-                        <option value="cash">Dinheiro</option>
-                        <option value="credit_card">Cartão</option>
-                      </select>
-                      <select name="currency" defaultValue={account.currency} className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1.5 text-xs text-slate-300">
-                        {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
-                      </select>
-                    </div>
+                    <p className="truncate text-sm font-semibold text-white">{account.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">{account.currency} · {accountKindLabel(account.kind)}</p>
                   </div>
                   <div className="flex gap-1">
-                    <button type="submit" className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-orange-500/10 hover:text-orange-300" aria-label="Salvar conta">
+                    <button type="button" onClick={() => setEditingAccount(account)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-orange-500/10 hover:text-orange-300" aria-label="Editar conta">
                       <Pencil size={15} />
                     </button>
-                    <button formAction={deleteAccount.bind(null, account.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-300" aria-label="Excluir conta">
-                      <Trash2 size={15} />
-                    </button>
+                    <form action={deleteAccount.bind(null, account.id)}>
+                      <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-300" aria-label="Excluir conta">
+                        <Trash2 size={15} />
+                      </button>
+                    </form>
                   </div>
-                </form>
+                </div>
               ))}
               {!accounts.length ? (
                 <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
@@ -724,6 +715,64 @@ export default function FinancePanel({ categories, accounts, transactions, metri
             </div>
           </section>
         </div>
+      </Modal>
+
+      <Modal title="Adicionar conta" open={accountCreateModal} onClose={() => setAccountCreateModal(false)}>
+        <form action={addAccount} className="grid gap-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Nome</label>
+            <input name="name" required placeholder="Ex: Nubank, Caixa, Visa" className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-slate-500" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Tipo</label>
+              <select name="kind" className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white">
+                <option value="bank">Conta</option>
+                <option value="cash">Dinheiro</option>
+                <option value="credit_card">Cartão</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Moeda</label>
+              <select name="currency" className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white">
+                {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
+              </select>
+            </div>
+          </div>
+          <button type="submit" className="mt-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600">
+            Salvar
+          </button>
+        </form>
+      </Modal>
+
+      <Modal title="Editar conta" open={Boolean(editingAccount)} onClose={() => setEditingAccount(null)}>
+        {editingAccount ? (
+          <form action={updateAccount.bind(null, editingAccount.id)} className="grid gap-3">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Nome</label>
+              <input name="name" defaultValue={editingAccount.name} required className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-300">Tipo</label>
+                <select name="kind" defaultValue={editingAccount.kind} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white">
+                  <option value="bank">Conta</option>
+                  <option value="cash">Dinheiro</option>
+                  <option value="credit_card">Cartão</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-300">Moeda</label>
+                <select name="currency" defaultValue={editingAccount.currency} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white">
+                  {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
+                </select>
+              </div>
+            </div>
+            <button type="submit" className="mt-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600">
+              Salvar
+            </button>
+          </form>
+        ) : null}
       </Modal>
 
       <Modal title="Relatório detalhado" open={detailModal} onClose={() => setDetailModal(false)}>
