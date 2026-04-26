@@ -128,8 +128,8 @@ function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/80 px-4 py-6 backdrop-blur">
-      <div className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl">
+    <div className="fixed inset-0 z-[60] overflow-x-hidden overflow-y-auto bg-slate-950/80 px-3 py-5 backdrop-blur sm:px-4 sm:py-6">
+      <div className="mx-auto w-full max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl sm:max-w-2xl">
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <h2 className="text-base font-semibold text-white">{title}</h2>
           <button
@@ -190,48 +190,48 @@ function TransactionForm({
   }
 
   return (
-    <form action={action} className="grid min-w-0 gap-3 md:grid-cols-2">
+    <form action={action} className="grid w-full min-w-0 max-w-full gap-3 overflow-hidden md:grid-cols-2">
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="due_date" value={transaction?.due_date ?? ""} />
-      <div className="rounded-2xl bg-orange-500/10 p-1 md:col-span-2">
+      <div className="w-full min-w-0 rounded-2xl bg-orange-500/10 p-1 md:col-span-2">
         <div className="grid grid-cols-2 gap-1">
-          <label className={`flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold ${type === "income" ? "bg-white text-blue-900" : "text-slate-500"}`}>
+          <label className={`flex min-w-0 items-center justify-center truncate rounded-xl px-2 py-2.5 text-sm font-semibold ${type === "income" ? "bg-white text-blue-900" : "text-slate-500"}`}>
             <input className="sr-only" type="radio" name="type" value="income" checked={type === "income"} onChange={() => setType("income")} />
             ↑ Entrada
           </label>
-          <label className={`flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold ${type === "expense" ? "bg-white text-red-700" : "text-slate-500"}`}>
+          <label className={`flex min-w-0 items-center justify-center truncate rounded-xl px-2 py-2.5 text-sm font-semibold ${type === "expense" ? "bg-white text-red-700" : "text-slate-500"}`}>
             <input className="sr-only" type="radio" name="type" value="expense" checked={type === "expense"} onChange={() => setType("expense")} />
             ↓ Saída
           </label>
         </div>
       </div>
-      <div className="rounded-2xl border border-orange-500/40 bg-slate-950 p-4 shadow-[0_0_0_1px_rgba(249,115,22,0.12)] md:col-span-2">
+      <div className="w-full min-w-0 rounded-2xl border border-orange-500/40 bg-slate-950 p-4 shadow-[0_0_0_1px_rgba(249,115,22,0.12)] md:col-span-2">
         <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-orange-300">Valor</label>
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 min-w-12 items-center justify-center rounded-xl bg-orange-500 text-lg font-bold text-white">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-lg font-bold text-white">
             {currencySymbol(currency)}
           </span>
-          <input name="amount" type="text" inputMode="decimal" defaultValue={transaction?.amount ? String(transaction.amount).replace(".", ",") : ""} required placeholder="0,00" className="min-w-0 flex-1 rounded-xl border border-transparent bg-white px-4 py-3 text-3xl font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-orange-400 sm:text-4xl" />
+          <input name="amount" type="text" inputMode="decimal" defaultValue={transaction?.amount ? String(transaction.amount).replace(".", ",") : ""} required placeholder="0,00" className="w-full min-w-0 flex-1 rounded-xl border border-transparent bg-white px-4 py-3 text-3xl font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-orange-400 sm:text-4xl" />
         </div>
       </div>
       <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-slate-300">Data</label>
         <input name="date" type="date" defaultValue={transaction?.date ?? today()} required className="block w-full min-w-0 max-w-full appearance-none rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500" />
       </div>
-      <div>
+      <div className="min-w-0">
         <label className="mb-2 block text-sm font-medium text-slate-300">Descrição</label>
         <input name="description" defaultValue={transaction?.description ?? ""} required placeholder={type === "income" ? "Apoiador, igreja ou descrição..." : "Ex: mercado, oferta, gasolina"} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-slate-500" />
       </div>
-      <div>
+      <div className="min-w-0">
         <div className="mb-2 flex items-center justify-between gap-3">
           <label className="block text-sm font-medium text-slate-300">Categoria</label>
           <button type="button" onClick={() => setQuickCategoryOpen(true)} className="inline-flex items-center gap-1 rounded-xl bg-orange-500/10 px-3 py-1.5 text-xs font-bold text-orange-300 hover:bg-orange-500/20">
             + Nova
           </button>
         </div>
-        <div className="flex gap-2">
-          <select name="category_id" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500">
+        <div className="flex min-w-0 gap-2">
+          <select name="category_id" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required className="w-full min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500">
             <option value="">Selecione</option>
             {categoryOptions.map((category) => (
               <option key={category.id} value={category.id}>{category.name}</option>
@@ -239,7 +239,7 @@ function TransactionForm({
           </select>
         </div>
       </div>
-      <div>
+      <div className="min-w-0">
         <div className="mb-2 flex items-center justify-between gap-3">
           <label className="block text-sm font-medium text-slate-300">Conta / banco / cartão</label>
           <button type="button" onClick={onEditAccounts} className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-white">
@@ -274,12 +274,12 @@ function TransactionForm({
           </div>
         </>
       ) : null}
-      <button type="submit" className="rounded-xl bg-orange-500 px-5 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-orange-600 md:col-span-2">
+      <button type="submit" className="w-full rounded-xl bg-orange-500 px-5 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-orange-600 md:col-span-2">
         Salvar
       </button>
       {quickCategoryOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-x-hidden bg-slate-950/80 px-3 backdrop-blur">
+          <div className="w-full max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl sm:max-w-sm sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-white">Nova categoria</h3>
               <button type="button" onClick={() => setQuickCategoryOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Fechar">
@@ -614,7 +614,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
               <h3 className="text-sm font-semibold text-white">Cadastrar nova categoria</h3>
               <p className="mt-1 text-xs text-slate-400">Use nomes curtos para facilitar a leitura nos lançamentos.</p>
             </div>
-            <form action={addCategory} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <form action={addCategory} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <input name="name" required placeholder="Ex: Alimentação, Luz, Oferta" className="min-w-0 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-slate-500" />
               <button type="submit" className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600">Adicionar</button>
             </form>
@@ -654,7 +654,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
               <h3 className="text-sm font-semibold text-white">Cadastrar nova conta</h3>
               <p className="mt-1 text-xs text-slate-400">Use para adicionar banco, dinheiro em mãos ou cartão.</p>
             </div>
-            <form action={addAccount} className="grid gap-2 md:grid-cols-[1fr_120px_100px_auto]">
+            <form action={addAccount} className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_120px_100px_auto]">
               <input name="name" required placeholder="Ex: Nubank, Caixa, Visa" className="min-w-0 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-slate-500" />
               <select name="kind" className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white">
                 <option value="bank">Conta</option>
@@ -678,7 +678,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
                 <form key={account.id} action={updateAccount.bind(null, account.id)} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 p-2">
                   <div className="min-w-0">
                     <input name="name" defaultValue={account.name} required className="min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-white outline-none focus:border-slate-700" />
-                    <div className="grid gap-2 px-2 pt-1 sm:grid-cols-[120px_100px]">
+                    <div className="grid min-w-0 gap-2 px-2 pt-1 sm:grid-cols-[120px_100px]">
                       <select name="kind" defaultValue={account.kind} className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1.5 text-xs text-slate-300">
                         <option value="bank">Conta</option>
                         <option value="cash">Dinheiro</option>

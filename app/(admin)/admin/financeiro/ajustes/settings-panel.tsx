@@ -110,7 +110,7 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
               <h1 className="text-2xl font-semibold text-white sm:text-3xl">Contas bancárias</h1>
             </div>
 
-            <form action={addAccount} className="mb-4 grid gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3 md:grid-cols-[1fr_140px_110px_auto]">
+            <form action={addAccount} className="mb-4 grid min-w-0 gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3 md:grid-cols-[minmax(0,1fr)_140px_110px_auto]">
               <input name="name" required placeholder="Nome da conta" className="min-w-0 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-orange-500" />
               <select name="kind" className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500">
                 <option value="bank">Conta</option>
@@ -128,13 +128,13 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
             <div className="space-y-3">
               {accounts.map((account) => (
                 <SettingsCard key={account.id}>
-                  <form action={updateAccount.bind(null, account.id)} className="grid grid-cols-[52px_1fr_auto] items-center gap-3">
+                  <form action={updateAccount.bind(null, account.id)} className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 text-lg font-semibold text-orange-200">
                       {accountIcon(account)}
                     </div>
                     <div className="min-w-0">
                       <input name="name" defaultValue={account.name} required className="min-w-0 rounded-xl border border-transparent bg-transparent px-1 py-1 text-base font-semibold text-white outline-none focus:border-slate-700 sm:text-lg" />
-                      <div className="mt-1 grid gap-2 sm:grid-cols-[140px_110px]">
+                      <div className="mt-1 grid min-w-0 gap-2 sm:grid-cols-[140px_110px]">
                         <select name="kind" defaultValue={account.kind} className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-orange-500">
                           <option value="bank">Conta</option>
                           <option value="cash">Dinheiro</option>
@@ -166,7 +166,7 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
               <h1 className="text-2xl font-semibold text-white sm:text-3xl">Categorias</h1>
             </div>
 
-            <form action={addCategory} className="mb-5 flex gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3">
+            <form action={addCategory} className="mb-5 flex min-w-0 gap-2 rounded-2xl border border-slate-800 bg-slate-900 p-3">
               <input name="name" required placeholder="Nova categoria" className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-orange-500" />
               <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600">
                 <Plus size={16} />Adicionar
@@ -183,7 +183,7 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
                   <div className="space-y-3 p-3 sm:p-4">
                     {group.items.map((category) => (
                       <SettingsCard key={category.id}>
-                        <form action={updateCategory.bind(null, category.id)} className="grid grid-cols-[52px_1fr_auto] items-center gap-3">
+                        <form action={updateCategory.bind(null, category.id)} className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 text-lg text-orange-200">↓</div>
                           <div className="min-w-0">
                             <input name="name" defaultValue={category.name} required className="min-w-0 rounded-xl border border-transparent bg-transparent px-1 py-1 text-base font-semibold text-white outline-none focus:border-slate-700 sm:text-lg" />
