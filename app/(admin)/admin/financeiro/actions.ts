@@ -8,7 +8,13 @@ function cleanString(value: FormDataEntryValue | null) {
 }
 
 function parseAmount(value: FormDataEntryValue | null) {
-  const raw = cleanString(value).replace(/\./g, "").replace(",", ".");
+  const input = cleanString(value).replace(/[^\d.,-]/g, "");
+  const lastComma = input.lastIndexOf(",");
+  const lastDot = input.lastIndexOf(".");
+  const decimalIndex = Math.max(lastComma, lastDot);
+  const raw = decimalIndex >= 0
+    ? `${input.slice(0, decimalIndex).replace(/[^\d-]/g, "")}.${input.slice(decimalIndex + 1).replace(/\D/g, "")}`
+    : input.replace(/[^\d-]/g, "");
   if (!raw) return null;
 
   const amount = Number(raw);

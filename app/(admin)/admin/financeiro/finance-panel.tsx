@@ -96,6 +96,17 @@ function currencySymbol(currency = "BRL") {
   return "R$";
 }
 
+function decimalSeparator(currency = "BRL") {
+  return currency === "USD" ? "." : ",";
+}
+
+function formatAmountInput(value: string, currency = "BRL") {
+  const digits = value.replace(/\D/g, "");
+  const cents = digits.padStart(3, "0");
+  const integerPart = cents.slice(0, -2).replace(/^0+(?=\d)/, "") || "0";
+  return `${integerPart}${decimalSeparator(currency)}${cents.slice(-2)}`;
+}
+
 function dateBR(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
 }
@@ -163,6 +174,9 @@ function TransactionForm({
   const [type, setType] = useState<"income" | "expense">(transaction?.type ?? (initialBalance ? "income" : "expense"));
   const mode = transaction?.mode ?? (initialBalance ? "initial_balance" : "normal");
   const [currency, setCurrency] = useState(transaction?.currency ?? accounts[0]?.currency ?? "BRL");
+  const [amount, setAmount] = useState(
+    transaction?.amount ? formatAmountInput(String(Math.round(Number(transaction.amount) * 100)), transaction.currency) : "",
+  );
   const initialCategory = initialBalance
     ? categories.find((category) => category.name === "Saldo inicial")?.id
     : undefined;
@@ -176,7 +190,10 @@ function TransactionForm({
 
   function handleAccountChange(accountId: string) {
     const account = accounts.find((item) => item.id === accountId);
-    if (account?.currency) setCurrency(account.currency);
+    if (account?.currency) {
+      setCurrency(account.currency);
+      setAmount((current) => current ? formatAmountInput(current, account.currency) : "");
+    }
   }
 
   function createCategoryFromModal() {
@@ -212,7 +229,7 @@ function TransactionForm({
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-lg font-bold text-white">
             {currencySymbol(currency)}
           </span>
-          <input name="amount" type="text" inputMode="decimal" defaultValue={transaction?.amount ? String(transaction.amount).replace(".", ",") : ""} required placeholder="0,00" className="w-full min-w-0 flex-1 rounded-xl border border-transparent bg-white px-4 py-3 text-3xl font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-orange-400 sm:text-4xl" />
+          <input name="amount" type="text" inputMode="numeric" value={amount} onChange={(event) => setAmount(formatAmountInput(event.target.value, currency))} required placeholder={`0${decimalSeparator(currency)}00`} className="w-full min-w-0 flex-1 rounded-xl border border-transparent bg-white px-4 py-3 text-3xl font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-orange-400 sm:text-4xl" />
         </div>
       </div>
       <div className="min-w-0">
