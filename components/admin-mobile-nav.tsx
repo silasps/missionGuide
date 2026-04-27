@@ -5,13 +5,13 @@ type Props = {
   missionaryMode: boolean;
 };
 
-const linkCls = "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-orange-400 transition hover:bg-orange-500/10 hover:text-orange-300";
-const dividerCls = "my-auto h-4 w-px shrink-0 bg-orange-500/30";
+const linkCls = "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700";
+const dividerCls = "my-auto h-5 w-px shrink-0 bg-slate-200";
 
 export default function AdminMobileNav({ missionaryMode }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 overflow-x-auto border-t border-orange-500/20 bg-slate-950/95 backdrop-blur lg:hidden">
-      <div className="mx-auto flex w-max items-center gap-0.5 px-2 py-1.5 scrollbar-none">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 overflow-x-auto border-t border-slate-200 bg-white/95 shadow-[0_-12px_28px_rgb(15_23_42/0.08)] backdrop-blur lg:hidden">
+      <div className="mx-auto flex w-max items-center gap-1 px-2 py-2 scrollbar-none">
         <Link href="/admin/feed" className={linkCls}><Home size={17} /></Link>
         <Link href="/admin/seguindo" className={linkCls}><Users size={17} /></Link>
         <Link href="/admin/descobrir" className={linkCls} title="Descobrir" aria-label="Descobrir"><Search size={17} /></Link>

@@ -128,10 +128,6 @@ export default async function FinanceiroPage({ searchParams }: Props) {
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (from) transactionsQuery = transactionsQuery.gte("date", from);
-  if (to) transactionsQuery = transactionsQuery.lte("date", to);
-  if (category) transactionsQuery = transactionsQuery.eq("category_id", category);
-  if (type === "income" || type === "expense") transactionsQuery = transactionsQuery.eq("type", type);
   transactionsQuery = transactionsQuery.eq("currency", currency);
 
   const { data: transactions, error: transactionsError } = await transactionsQuery;

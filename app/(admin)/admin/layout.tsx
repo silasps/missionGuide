@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/logout-button";
 import AdminMenuButton from "@/components/admin-menu-button";
 import AdminThemeToggle from "@/components/admin-theme-toggle";
+import AdminMobileNav from "@/components/admin-mobile-nav";
 import { Home, Users, Heart, UserCircle2, Settings, LayoutDashboard, FolderKanban, PlusCircle, Star, Handshake, HandHelping, Sparkles, BadgeDollarSign, Search, HandHeart } from "lucide-react";
 
 export default async function AdminLayout({
@@ -28,19 +29,19 @@ export default async function AdminLayout({
     .maybeSingle();
 
   const missionaryMode = profile?.missionary_mode ?? false;
-  const navLink = "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-orange-500/10 hover:text-white [&>svg]:text-orange-400";
+  const navLink = "admin-nav-link flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition [&>svg]:text-emerald-300";
 
   return (
-    <div className="admin-shell min-h-screen bg-slate-950 text-white">
+    <div className="admin-app-shell min-h-screen">
       <div className="admin-shell flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-orange-500/20 bg-slate-950 lg:block">
+        <aside className="admin-side-nav hidden w-72 shrink-0 border-r border-white/10 lg:block">
           <div className="p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500">
                 <HandHeart size={18} className="text-white" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-orange-300">
+                <p className="text-xs uppercase tracking-[0.18em] text-emerald-300">
                   Painel
                 </p>
                 <h2 className="text-base font-semibold text-white">
@@ -48,12 +49,12 @@ export default async function AdminLayout({
                 </h2>
               </div>
             </div>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-white/60">
               {profile?.display_name || user.email}
             </p>
 
             <nav className="mt-7 flex flex-col gap-1">
-              <p className="mb-1 px-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <p className="mb-1 px-4 text-xs font-semibold uppercase tracking-widest text-white/40">
                 Geral
               </p>
 
@@ -81,7 +82,7 @@ export default async function AdminLayout({
 
               {missionaryMode && (
                 <>
-                  <p className="mb-1 mt-4 px-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  <p className="mb-1 mt-4 px-4 text-xs font-semibold uppercase tracking-widest text-white/40">
                     Missão
                   </p>
                   <Link href="/admin" className={navLink}>
@@ -108,7 +109,7 @@ export default async function AdminLayout({
                 </>
               )}
 
-              <p className="mb-1 mt-4 px-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <p className="mb-1 mt-4 px-4 text-xs font-semibold uppercase tracking-widest text-white/40">
                 Conta
               </p>
               <AdminThemeToggle className={navLink} />
@@ -118,15 +119,18 @@ export default async function AdminLayout({
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
-          <header className="relative z-50 border-b border-orange-500/20 bg-slate-950/95 backdrop-blur">
-            <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <header className="admin-topbar relative z-50 border-b border-emerald-700/20">
+            <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:min-h-16">
               <div className="flex items-center gap-3">
                 <AdminMenuButton missionaryMode={missionaryMode} />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-medium text-slate-950 lg:hidden">
+                  {(profile?.display_name || user.email || "U").slice(0, 2).toUpperCase()}
+                </div>
                 <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-orange-300">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/80">
                   {missionaryMode ? "Modo Missionário" : "Minha conta"}
                 </p>
-                <p className="mt-1 text-sm text-slate-300">
+                <p className="mt-1 text-xs text-white">
                   {profile?.display_name || user.email}
                 </p>
                 </div>
@@ -134,7 +138,8 @@ export default async function AdminLayout({
             </div>
           </header>
 
-          <main className="admin-page-content flex-1 px-4 py-5 pb-20 transition sm:px-6">{children}</main>
+          <main className="admin-page-content flex-1 px-4 py-6 pb-24 transition sm:px-6">{children}</main>
+          <AdminMobileNav missionaryMode={missionaryMode} />
         </div>
       </div>
     </div>

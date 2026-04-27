@@ -1,12 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --brand: #f97316;
-  --brand-hover: #ea580c;
-  --brand-soft: #fff7ed;
-  --brand-border: #fed7aa;
+  --background: #f3f5f9;
+  --foreground: #080d1d;
+  --brand: #16a34a;
+  --brand-hover: #15803d;
+  --brand-soft: #ecfdf3;
+  --brand-border: #bbf7d0;
+  --accent: #3863e8;
+  --danger: #ef4444;
+  --surface: #ffffff;
+  --surface-muted: #eef2f7;
+  --line: #dde5ef;
+  --muted: #697893;
+  --shadow-soft: 0 14px 30px rgb(15 23 42 / 0.08);
 }
 
 html,
@@ -17,6 +24,8 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 * {
@@ -39,8 +48,8 @@ select:focus,
 textarea:focus {
   background-color: #ffffff !important;
   border-color: var(--brand) !important;
-  box-shadow: 0 0 0 3px rgb(249 115 22 / 0.22) !important;
-  color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgb(22 163 74 / 0.18) !important;
+  color: var(--foreground) !important;
   outline: none !important;
 }
 
@@ -104,55 +113,240 @@ html.admin-menu-open .admin-page-content {
 }
 
 html[data-theme="light"] body,
-html[data-theme="light"] .admin-shell,
-html[data-theme="light"] .bg-slate-950,
-html[data-theme="light"] .bg-slate-950\/95,
-html[data-theme="light"] .from-slate-900,
-html[data-theme="light"] .via-slate-900,
-html[data-theme="light"] .to-slate-950 {
-  background: #f8fafc !important;
-  color: #0f172a !important;
+html[data-theme="light"] .admin-shell {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
 }
 
-html[data-theme="light"] .bg-slate-900,
-html[data-theme="light"] .bg-white {
+html[data-theme="light"] .admin-page-content {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] .admin-page-content .bg-slate-950,
+html[data-theme="light"] .admin-page-content .bg-slate-950\/95,
+html[data-theme="light"] .admin-page-content .from-slate-900,
+html[data-theme="light"] .admin-page-content .via-slate-900,
+html[data-theme="light"] .admin-page-content .to-slate-950 {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] .admin-page-content .bg-slate-900,
+html[data-theme="light"] .admin-page-content .bg-white {
+  background-color: var(--surface) !important;
+}
+
+html[data-theme="light"] .admin-page-content .bg-slate-800,
+html[data-theme="light"] .admin-page-content .bg-slate-700,
+html[data-theme="light"] .admin-page-content .bg-slate-100 {
+  background-color: var(--surface-muted) !important;
+}
+
+html[data-theme="light"] .admin-page-content .border-slate-800,
+html[data-theme="light"] .admin-page-content .border-slate-700,
+html[data-theme="light"] .admin-page-content .border-slate-300,
+html[data-theme="light"] .admin-page-content .border-slate-200\/80 {
+  border-color: var(--line) !important;
+}
+
+html[data-theme="light"] .admin-page-content .text-white,
+html[data-theme="light"] .admin-page-content .text-slate-900,
+html[data-theme="light"] .admin-page-content .text-slate-800,
+html[data-theme="light"] .admin-page-content .text-slate-300,
+html[data-theme="light"] .admin-page-content .text-slate-200 {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] .admin-page-content .text-slate-700,
+html[data-theme="light"] .admin-page-content .text-slate-600,
+html[data-theme="light"] .admin-page-content .text-slate-500,
+html[data-theme="light"] .admin-page-content .text-slate-400 {
+  color: var(--muted) !important;
+}
+
+html[data-theme="light"] .admin-page-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-theme="light"] .admin-page-content select,
+html[data-theme="light"] .admin-page-content textarea {
   background-color: #ffffff !important;
+  border-color: var(--line) !important;
+  color: var(--foreground) !important;
 }
 
-html[data-theme="light"] .bg-slate-800,
-html[data-theme="light"] .bg-slate-700,
-html[data-theme="light"] .bg-slate-100 {
-  background-color: #e2e8f0 !important;
-}
-
-html[data-theme="light"] .border-slate-800,
-html[data-theme="light"] .border-slate-700,
-html[data-theme="light"] .border-slate-300,
-html[data-theme="light"] .border-slate-200\/80 {
-  border-color: #e2e8f0 !important;
-}
-
-html[data-theme="light"] .text-white,
-html[data-theme="light"] .text-slate-900,
-html[data-theme="light"] .text-slate-800,
-html[data-theme="light"] .text-slate-300,
-html[data-theme="light"] .text-slate-200 {
-  color: #0f172a !important;
-}
-
-html[data-theme="light"] .text-slate-700,
-html[data-theme="light"] .text-slate-600,
-html[data-theme="light"] .text-slate-500,
-html[data-theme="light"] .text-slate-400 {
-  color: #64748b !important;
-}
-
-html[data-theme="light"] .shadow-2xl,
-html[data-theme="light"] .shadow-xl {
-  box-shadow: 0 18px 45px rgb(15 23 42 / 0.08) !important;
+html[data-theme="light"] .admin-page-content input::placeholder,
+html[data-theme="light"] .admin-page-content textarea::placeholder {
+  color: #7b8799 !important;
 }
 
 html[data-theme="dark"] body {
   background: #020617;
   color: #ffffff;
+}
+
+.admin-app-shell {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.admin-topbar {
+  background: var(--brand) !important;
+  color: #ffffff !important;
+}
+
+.admin-side-nav {
+  background: #020403 !important;
+  color: #ffffff !important;
+}
+
+.admin-nav-link {
+  border: 1px solid transparent;
+  color: rgb(255 255 255 / 0.9) !important;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link[aria-current="page"] {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.18);
+  color: #ffffff !important;
+}
+
+.admin-nav-link svg {
+  color: #5ff0be !important;
+  stroke: currentColor;
+}
+
+.admin-menu-panel {
+  background: #020403 !important;
+  color: #ffffff !important;
+}
+
+.admin-menu-panel p,
+.admin-menu-panel button,
+.admin-menu-panel a {
+  color: rgb(255 255 255 / 0.92) !important;
+}
+
+.admin-menu-panel [class*="text-white"] {
+  color: rgb(255 255 255 / 0.92) !important;
+}
+
+.admin-menu-panel [class*="text-slate"] {
+  color: rgb(255 255 255 / 0.74) !important;
+}
+
+.admin-topbar [class*="text-white"],
+.admin-side-nav [class*="text-white"] {
+  color: #ffffff !important;
+}
+
+.admin-topbar [class*="text-slate"],
+.admin-side-nav [class*="text-slate"] {
+  color: rgb(255 255 255 / 0.72) !important;
+}
+
+.app-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.app-input {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--foreground);
+  min-height: 3.35rem;
+}
+
+.app-muted-input {
+  background: var(--surface-muted);
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  color: var(--foreground);
+  min-height: 3.35rem;
+}
+
+.finance-panel {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.finance-panel .bg-slate-950,
+.finance-panel .bg-slate-950\/95 {
+  background-color: var(--background) !important;
+}
+
+.finance-panel .bg-slate-900,
+.finance-panel .bg-white {
+  background-color: var(--surface) !important;
+}
+
+.finance-panel .bg-slate-800,
+.finance-panel .bg-slate-700,
+.finance-panel .bg-slate-100 {
+  background-color: var(--surface-muted) !important;
+}
+
+.finance-panel .border-slate-800,
+.finance-panel .border-slate-700,
+.finance-panel .border-slate-300,
+.finance-panel .border-slate-200\/80 {
+  border-color: var(--line) !important;
+}
+
+.finance-panel .text-white,
+.finance-panel .text-slate-900,
+.finance-panel .text-slate-800,
+.finance-panel .text-slate-300,
+.finance-panel .text-slate-200 {
+  color: var(--foreground) !important;
+}
+
+.finance-panel .text-slate-700,
+.finance-panel .text-slate-600,
+.finance-panel .text-slate-500,
+.finance-panel .text-slate-400 {
+  color: var(--muted) !important;
+}
+
+.finance-panel .text-orange-300,
+.finance-panel .text-orange-400 {
+  color: var(--brand) !important;
+}
+
+.finance-panel .finance-period-tab-active {
+  color: #ffffff !important;
+}
+
+.finance-panel .bg-orange-500,
+.finance-panel .bg-amber-500 {
+  background-color: var(--brand) !important;
+}
+
+.finance-panel .bg-orange-500\/10 {
+  background-color: var(--brand-soft) !important;
+}
+
+.finance-panel .border-orange-500\/25,
+.finance-panel .border-orange-500\/30,
+.finance-panel .border-orange-500\/40,
+.finance-panel .border-orange-500\/60 {
+  border-color: var(--brand-border) !important;
+}
+
+.finance-panel .shadow-2xl,
+.finance-panel .shadow-xl,
+.finance-panel .shadow-lg {
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.finance-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.finance-panel select,
+.finance-panel textarea {
+  min-height: 3.25rem;
+}
+
+.finance-panel .bottom-safe {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }

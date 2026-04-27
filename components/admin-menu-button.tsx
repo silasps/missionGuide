@@ -27,7 +27,7 @@ type Props = {
   missionaryMode: boolean;
 };
 
-const linkClass = "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-200 hover:bg-orange-500/10 [&>svg]:text-orange-400";
+const linkClass = "admin-nav-link flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-white/90 [&>svg]:text-emerald-300";
 
 export default function AdminMenuButton({ missionaryMode }: Props) {
   const [open, setOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 lg:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 text-white hover:bg-white/10 lg:hidden"
         aria-label={open ? "Fechar menu" : "Abrir menu"}
       >
         {open ? <X size={18} /> : <Menu size={18} />}
@@ -79,7 +79,7 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
           <button
             type="button"
             data-admin-menu-open="true"
-            className="fixed inset-x-0 bottom-0 top-[61px] z-[9998] bg-slate-950/85 backdrop-blur-2xl"
+            className="fixed inset-x-0 bottom-0 top-20 z-[9998] bg-slate-950/65 backdrop-blur-2xl"
             aria-label="Fechar menu"
             onClick={() => setOpen(false)}
             style={{ WebkitBackdropFilter: "blur(24px)", backdropFilter: "blur(24px)" }}
@@ -87,7 +87,7 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
 
           <div
             ref={menuRef}
-            className="fixed left-0 right-0 top-[61px] z-[9999] border-b border-orange-500/20 bg-slate-950/95 p-3 shadow-2xl backdrop-blur"
+            className="admin-menu-panel fixed left-0 right-0 top-20 z-[9999] border-b border-white/10 bg-black/95 p-3 shadow-2xl backdrop-blur"
           >
             <div className="mx-auto max-w-md">
               <nav className="grid grid-cols-2 gap-1" onClick={() => setOpen(false)}>
@@ -101,7 +101,7 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
 
                 {missionaryMode ? (
                   <>
-                    <p className="col-span-2 mb-1 mt-2 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Missão</p>
+                    <p className="col-span-2 mb-1 mt-2 px-3 text-xs font-semibold uppercase tracking-widest text-white/40">Missão</p>
                     <Link href="/admin" className={linkClass}><LayoutDashboard size={16} />Dashboard</Link>
                     <Link href="/admin/publicacoes" className={linkClass}><FolderKanban size={16} />Publicações</Link>
                     <Link href="/admin/publicacoes/nova" className={linkClass}><PlusCircle size={16} />Nova publicação</Link>
@@ -112,7 +112,7 @@ export default function AdminMenuButton({ missionaryMode }: Props) {
                   </>
                 ) : null}
 
-                <p className="col-span-2 mb-1 mt-2 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Conta</p>
+                <p className="col-span-2 mb-1 mt-2 px-3 text-xs font-semibold uppercase tracking-widest text-white/40">Conta</p>
                 <AdminThemeToggle className={linkClass} />
                 <LogoutButton className={linkClass} />
               </nav>

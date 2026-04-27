@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpDown, BarChart3, Building2, Home, Pencil, Plus, Search, Settings, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BarChart3, Building2, CalendarDays, Funnel, Home, Landmark, Paintbrush, Pencil, Plus, RotateCcw, Search, Settings, Trash2, WalletCards, X } from "lucide-react";
 import {
   addAccount,
   addCategory,
@@ -111,6 +112,12 @@ function dateBR(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
 }
 
+function addDays(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 function categoryName(transaction: FinanceTransaction) {
   const category = transaction.finance_categories;
   if (!category) return "Sem categoria";
@@ -131,6 +138,37 @@ function accountKindLabel(kind: string) {
   return "Conta";
 }
 
+function MetricCard({
+  label,
+  value,
+  tone,
+  children,
+}: {
+  label: string;
+  value: string;
+  tone: "income" | "expense" | "balance" | "tithe";
+  children?: React.ReactNode;
+}) {
+  const config = {
+    income: { icon: ArrowUp, text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+    expense: { icon: ArrowDown, text: "text-red-600", bg: "bg-red-50", border: "border-red-100" },
+    balance: { icon: WalletCards, text: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
+    tithe: { icon: Landmark, text: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" },
+  }[tone];
+  const Icon = config.icon;
+
+  return (
+    <div className={`app-card rounded-2xl p-4 sm:p-3 ${config.border}`}>
+      <p className={`flex items-center gap-1.5 text-xs font-medium ${config.text}`}>
+        <Icon size={13} />
+        {label}
+      </p>
+      <p className={`mt-1.5 text-lg font-semibold leading-tight tracking-tight sm:text-xl ${config.text}`}>{value}</p>
+      {children ? <div className="mt-3 border-t border-slate-100 pt-2.5 sm:mt-2 sm:pt-2">{children}</div> : null}
+    </div>
+  );
+}
+
 function Modal({
   title,
   open,
@@ -145,14 +183,14 @@ function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-x-hidden overflow-y-auto bg-slate-950/80 px-3 py-5 backdrop-blur sm:px-4 sm:py-6">
-      <div className="mx-auto w-full max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl sm:max-w-2xl">
-        <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <h2 className="text-base font-semibold text-white">{title}</h2>
+    <div className="fixed inset-0 z-[60] overflow-x-hidden overflow-y-auto bg-slate-950/70 px-3 py-5 backdrop-blur sm:px-4 sm:py-6">
+      <div className="mx-auto w-full max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-2xl sm:max-w-2xl sm:p-6">
+        <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-950"
             aria-label="Fechar"
           >
             <X size={18} />
@@ -217,25 +255,25 @@ function TransactionForm({
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="due_date" value={transaction?.due_date ?? ""} />
-      <div className="w-full min-w-0 rounded-2xl bg-orange-500/10 p-1 md:col-span-2">
+      <div className="w-full min-w-0 rounded-2xl bg-emerald-50 p-1 md:col-span-2">
         <div className="grid grid-cols-2 gap-1">
-          <label className={`flex min-w-0 items-center justify-center truncate rounded-xl px-2 py-2.5 text-sm font-semibold ${type === "income" ? "bg-white text-blue-900" : "text-slate-500"}`}>
+          <label className={`flex min-w-0 items-center justify-center gap-2 truncate rounded-xl px-2 py-3 text-sm font-bold ${type === "income" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500"}`}>
             <input className="sr-only" type="radio" name="type" value="income" checked={type === "income"} onChange={() => setType("income")} />
-            ↑ Entrada
+            <ArrowUp size={16} /> Entrada
           </label>
-          <label className={`flex min-w-0 items-center justify-center truncate rounded-xl px-2 py-2.5 text-sm font-semibold ${type === "expense" ? "bg-white text-red-700" : "text-slate-500"}`}>
+          <label className={`flex min-w-0 items-center justify-center gap-2 truncate rounded-xl px-2 py-3 text-sm font-bold ${type === "expense" ? "bg-white text-red-700 shadow-sm" : "text-slate-500"}`}>
             <input className="sr-only" type="radio" name="type" value="expense" checked={type === "expense"} onChange={() => setType("expense")} />
-            ↓ Saída
+            <ArrowDown size={16} /> Saída
           </label>
         </div>
       </div>
-      <div className="w-full min-w-0 rounded-2xl border border-orange-500/40 bg-slate-950 p-4 shadow-[0_0_0_1px_rgba(249,115,22,0.12)] md:col-span-2">
-        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-orange-300">Valor</label>
+      <div className="w-full min-w-0 rounded-3xl border border-emerald-200 bg-slate-50 p-4 shadow-sm md:col-span-2">
+        <label className="mb-3 block text-xs font-bold uppercase tracking-widest text-emerald-700">Valor</label>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-lg font-bold text-white">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-lg font-bold text-white">
             {currencySymbol(currency)}
           </span>
-          <input name="amount" type="text" inputMode="numeric" value={amount} onChange={(event) => setAmount(formatAmountInput(event.target.value, currency))} required placeholder={`0${decimalSeparator(currency)}00`} className="w-full min-w-0 flex-1 rounded-xl border border-transparent bg-white px-4 py-3 text-3xl font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-orange-400 sm:text-4xl" />
+          <input name="amount" type="text" inputMode="numeric" value={amount} onChange={(event) => setAmount(formatAmountInput(event.target.value, currency))} required placeholder={`0${decimalSeparator(currency)}00`} className="w-full min-w-0 flex-1 rounded-2xl border border-transparent bg-white px-4 py-3 text-3xl font-black text-slate-950 outline-none placeholder:text-slate-400 focus:border-emerald-400 sm:text-4xl" />
         </div>
       </div>
       <div className="min-w-0">
@@ -323,8 +361,12 @@ function TransactionForm({
   );
 }
 
-export default function FinancePanel({ categories, accounts, transactions, metrics, filters }: Props) {
+export default function FinancePanel({ categories, accounts, transactions, filters }: Props) {
+  const router = useRouter();
   const [activeView, setActiveView] = useState<"home" | "entries" | "transfers" | "settings">("home");
+  const [selectedMonth, setSelectedMonth] = useState(filters.month);
+  const [rangeFilter, setRangeFilter] = useState({ from: filters.from, to: filters.to });
+  const [detailFilters, setDetailFilters] = useState({ category: filters.category, type: filters.type });
   const [entryFilter, setEntryFilter] = useState<"all" | "income" | "expense" | "card">("all");
   const [entrySearchOpen, setEntrySearchOpen] = useState(false);
   const [entrySearch, setEntrySearch] = useState("");
@@ -336,20 +378,68 @@ export default function FinancePanel({ categories, accounts, transactions, metri
   const [accountRequiredModal, setAccountRequiredModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
   const [editing, setEditing] = useState<FinanceTransaction | null>(null);
-  const maxExpense = useMemo(
-    () => Math.max(...metrics.topExpenses.map((item) => item.amount), 1),
-    [metrics.topExpenses],
-  );
-  const monthDate = new Date(`${filters.month}-02T00:00:00`);
+  const monthDate = new Date(`${selectedMonth}-02T00:00:00`);
   const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().slice(0, 10);
   const prevMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1).toISOString().slice(0, 7);
   const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1).toISOString().slice(0, 7);
-  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(monthDate);
-  const viewButtonClass = "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold";
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(monthDate);
+  const currentDay = today();
+  const sevenDaysAgo = addDays(currentDay, -7);
+  const yearStart = `${monthDate.getFullYear()}-01-01`;
+  const yearEnd = `${monthDate.getFullYear()}-12-31`;
+  const selectedRangeStart = rangeFilter.from || monthStart;
+  const selectedRangeEnd = rangeFilter.to || monthEnd;
+  const selectedRangeLabel = `${dateBR(selectedRangeStart)} - ${dateBR(selectedRangeEnd)}`;
+  const hasAdvancedFilters = Boolean(detailFilters.category || detailFilters.type);
+  const activePeriod =
+    rangeFilter.from === currentDay && rangeFilter.to === currentDay
+      ? "today"
+      : rangeFilter.from === sevenDaysAgo && rangeFilter.to === currentDay
+        ? "week"
+        : rangeFilter.from === yearStart && rangeFilter.to === yearEnd
+          ? "year"
+          : "month";
+  const viewButtonClass = "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium";
   const entrySearchTerm = entrySearch.trim().toLowerCase();
-  const visibleTransactions = transactions.filter((transaction) => {
-    const isInMonth = transaction.date >= monthStart && transaction.date <= monthEnd;
+  const filteredTransactions = transactions.filter((transaction) => {
+    const isInRange = transaction.date >= selectedRangeStart && transaction.date <= selectedRangeEnd;
+    const matchesCategory = !detailFilters.category || transaction.category_id === detailFilters.category;
+    const matchesType = !detailFilters.type || transaction.type === detailFilters.type;
+    return isInRange && matchesCategory && matchesType && transaction.currency === filters.currency;
+  });
+  const computedMetrics = useMemo(() => {
+    const income = filteredTransactions
+      .filter((item) => item.type === "income")
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+    const expenses = filteredTransactions
+      .filter((item) => item.type === "expense")
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+    const titheBase = filteredTransactions
+      .filter((item) => item.type === "income" && item.tithe_eligible)
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+    const scheduledExpenses = filteredTransactions
+      .filter((item) => item.type === "expense" && item.due_date && item.due_date >= selectedRangeStart && item.due_date <= selectedRangeEnd)
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+    const expenseByCategory = filteredTransactions
+      .filter((item) => item.type === "expense")
+      .reduce<Record<string, number>>((acc, item) => {
+        const name = categoryName(item);
+        acc[name] = (acc[name] ?? 0) + Number(item.amount ?? 0);
+        return acc;
+      }, {});
+    const topExpenses = Object.entries(expenseByCategory)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    return { income, expenses, balance: income - expenses, projectedBalance: income - expenses - scheduledExpenses, tithe: titheBase * 0.1, topExpenses };
+  }, [filteredTransactions, selectedRangeEnd, selectedRangeStart]);
+  const maxExpense = useMemo(
+    () => Math.max(...computedMetrics.topExpenses.map((item) => item.amount), 1),
+    [computedMetrics.topExpenses],
+  );
+  const visibleTransactions = filteredTransactions.filter((transaction) => {
     const isCard = transaction.mode === "credit_purchase" || (Array.isArray(transaction.finance_accounts)
       ? transaction.finance_accounts[0]?.kind === "credit_card"
       : transaction.finance_accounts?.kind === "credit_card");
@@ -365,7 +455,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
       accountName(transaction),
     ].join(" ").toLowerCase();
 
-    return isInMonth && matchesQuickFilter && (!entrySearchTerm || searchable.includes(entrySearchTerm));
+    return matchesQuickFilter && (!entrySearchTerm || searchable.includes(entrySearchTerm));
   });
   const transactionsByDate = visibleTransactions.reduce<Record<string, FinanceTransaction[]>>((acc, transaction) => {
     acc[transaction.date] = [...(acc[transaction.date] ?? []), transaction];
@@ -381,70 +471,124 @@ export default function FinancePanel({ categories, accounts, transactions, metri
     setTransactionModal(true);
   }
 
+  const periodTabs = [
+    { key: "today", label: "Hoje", from: currentDay, to: currentDay, month: currentDay.slice(0, 7) },
+    { key: "week", label: "7 dias atrás", from: sevenDaysAgo, to: currentDay, month: currentDay.slice(0, 7) },
+    { key: "month", label: "Esse mês", from: "", to: "", month: selectedMonth },
+    { key: "year", label: "Esse ano", from: yearStart, to: yearEnd, month: selectedMonth },
+  ];
+
   return (
-    <div className="-mx-4 -my-6 min-h-screen bg-slate-950 pb-24 text-white sm:-mx-6">
+    <div className="finance-panel -mx-4 -my-6 min-h-screen bg-slate-50 pb-28 text-slate-950 sm:-mx-6">
       {activeView !== "entries" ? (
-        <div className="bg-slate-950 px-4 py-4 text-white sm:px-6">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-            <Link href={`/admin/financeiro?month=${prevMonth}&currency=${filters.currency}`} className="rounded-full px-3 py-2 text-orange-300">‹</Link>
-            <h1 className="text-xl font-bold capitalize">{monthLabel}</h1>
-            <Link href={`/admin/financeiro?month=${nextMonth}&currency=${filters.currency}`} className="rounded-full px-3 py-2 text-orange-300">›</Link>
-            <form className="ml-auto">
-              <input type="hidden" name="month" value={filters.month} />
-              <select name="currency" defaultValue={filters.currency} className="rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white" onChange={(event) => event.currentTarget.form?.requestSubmit()}>
-                {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
-              </select>
-            </form>
+        <div className="px-2 pt-2 text-slate-950 sm:px-3">
+          <div className="mx-auto max-w-6xl rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm shadow-slate-200/80 sm:p-3">
+            <div className="grid grid-cols-[38px_1fr_38px] items-center gap-2 sm:grid-cols-[42px_1fr_42px]">
+              <button type="button" onClick={() => { setSelectedMonth(prevMonth); setRangeFilter({ from: "", to: "" }); }} className="flex h-[38px] w-[38px] max-w-full items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm shadow-slate-200 sm:h-[42px] sm:w-[42px]" aria-label="Mês anterior">
+                <ArrowLeft size={19} strokeWidth={2.1} />
+              </button>
+              <h1 className="text-center text-xl font-semibold capitalize leading-none text-slate-950 sm:text-2xl">{monthLabel}</h1>
+              <button type="button" onClick={() => { setSelectedMonth(nextMonth); setRangeFilter({ from: "", to: "" }); }} className="flex h-[38px] w-[38px] max-w-full items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm shadow-slate-200 sm:h-[42px] sm:w-[42px]" aria-label="Próximo mês">
+                <ArrowRight size={19} strokeWidth={2.1} />
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200">
+              {periodTabs.map((tab, index) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => { setSelectedMonth(tab.month); setRangeFilter({ from: tab.from, to: tab.to }); }}
+                  className={`flex h-9 items-center justify-center border-slate-200 px-1 text-center text-xs font-medium transition sm:h-10 sm:px-2 sm:text-sm ${
+                    index > 0 ? "border-l" : ""
+                  } ${
+                    activePeriod === tab.key
+                      ? "finance-period-tab-active bg-emerald-600 text-white"
+                      : "bg-white text-slate-950 hover:bg-slate-50"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex items-center gap-2.5">
+              <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-950 shadow-sm shadow-slate-200 sm:h-10 sm:px-4 sm:text-sm">
+                <CalendarDays size={16} strokeWidth={2} className="shrink-0" />
+                <span className="truncate">{selectedRangeLabel}</span>
+              </div>
+
+              <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200 sm:h-10">
+                <button type="button" onClick={() => router.refresh()} className="flex w-10 items-center justify-center border-r border-slate-200 text-slate-950 sm:w-11" aria-label="Atualizar dados">
+                  <RotateCcw size={17} strokeWidth={2} />
+                </button>
+                <button type="button" onClick={() => setDetailFilters({ category: "", type: "" })} className="flex w-10 items-center justify-center border-r border-slate-200 text-slate-950 sm:w-11" aria-label="Limpar filtros avançados">
+                  <Paintbrush size={17} strokeWidth={2} />
+                </button>
+                <button type="button" onClick={() => setDetailModal(true)} className={`flex w-10 items-center justify-center text-slate-950 sm:w-11 ${hasAdvancedFilters ? "bg-emerald-50" : "bg-white"}`} aria-label="Abrir filtros">
+                  <Funnel size={17} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-6xl px-3 py-3 sm:px-4">
         {activeView === "home" ? (
           <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs font-bold uppercase tracking-widest text-slate-400">Entradas</p><p className="mt-2 text-xl font-bold text-emerald-300">{money(metrics.income, filters.currency)}</p></div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs font-bold uppercase tracking-widest text-slate-400">Saídas</p><p className="mt-2 text-xl font-bold text-red-300">{money(metrics.expenses, filters.currency)}</p></div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs font-bold uppercase tracking-widest text-slate-400">Saldo</p><p className="mt-2 text-xl font-bold text-white">{money(metrics.balance, filters.currency)}</p></div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs font-bold uppercase tracking-widest text-slate-400">Dízimo</p><p className="mt-2 text-xl font-bold text-amber-300">{money(metrics.tithe, filters.currency)}</p></div>
+        <MetricCard label="Entradas" value={money(computedMetrics.income, filters.currency)} tone="income">
+          <p className="text-[11px] font-normal text-slate-500">Recebido no período</p>
+        </MetricCard>
+        <MetricCard label="Saídas" value={money(computedMetrics.expenses, filters.currency)} tone="expense">
+          <p className="text-[11px] font-normal text-slate-500">Despesas registradas</p>
+        </MetricCard>
+        <MetricCard label="Saldo" value={money(computedMetrics.balance, filters.currency)} tone="balance">
+          <p className="text-[11px] font-normal text-slate-500">Receita menos despesas</p>
+        </MetricCard>
+        <MetricCard label="Dízimo" value={money(computedMetrics.tithe, filters.currency)} tone="tithe">
+          <p className="text-[11px] font-normal text-slate-500">Base das entradas marcadas</p>
+        </MetricCard>
       </div>
-      <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Saldo previsto</p>
-        <p className="mt-2 text-xl font-bold text-white">{money(metrics.projectedBalance, filters.currency)}</p>
+      <div className="app-card mt-2.5 rounded-xl p-2.5 sm:p-3">
+        <p className="flex items-center gap-1.5 text-[9px] font-medium text-blue-700 sm:text-[11px]"><CalendarDays size={11} />Saldo previsto</p>
+        <p className="mt-1.5 text-base font-semibold leading-tight text-blue-700 sm:text-lg">{money(computedMetrics.projectedBalance, filters.currency)}</p>
+        <p className="mt-1 text-[9px] font-normal text-slate-500 sm:text-[10px]">Considera lançamentos e vencimentos do mês.</p>
       </div>
 
-      <section className="mt-5 rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+      <section className="app-card mt-5 p-4 sm:p-5">
         <div className="mb-5 flex items-center gap-2">
-          <BarChart3 size={18} className="text-slate-400" />
-          <h2 className="text-lg font-semibold text-white">Gastos por categoria</h2>
+          <BarChart3 size={20} className="text-slate-600" />
+          <h2 className="text-base font-semibold text-slate-950">Gastos por categoria</h2>
         </div>
-        {metrics.topExpenses.length ? (
+        {computedMetrics.topExpenses.length ? (
           <div className="space-y-4">
-            {metrics.topExpenses.map((item) => (
+            {computedMetrics.topExpenses.map((item) => (
               <div key={item.name}>
-                <div className="mb-2 flex justify-between gap-3 text-sm"><span>{item.name}</span><span className="font-semibold">{money(item.amount, filters.currency)}</span></div>
-                <div className="h-3 overflow-hidden rounded-full bg-orange-500/10"><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max((item.amount / maxExpense) * 100, 4)}%` }} /></div>
+                <div className="mb-2 flex justify-between gap-3 text-xs"><span>{item.name}</span><span className="font-medium">{money(item.amount, filters.currency)}</span></div>
+                <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max((item.amount / maxExpense) * 100, 4)}%` }} /></div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="rounded-2xl border border-dashed border-slate-800 p-6 text-sm text-slate-400">Nenhuma saída lançada neste mês.</p>
+          <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-xs text-slate-500">Nenhuma saída lançada neste mês.</p>
         )}
       </section>
-      <section className="mt-5 rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+      <section className="app-card mt-5 p-4 sm:p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Carteira</h2>
-          <button onClick={() => setAccountModal(true)} className="text-sm font-bold text-orange-400">Gerenciar →</button>
+          <h2 className="text-base font-semibold">Carteira</h2>
+          <button onClick={() => setAccountModal(true)} className="text-xs font-medium text-emerald-700">Gerenciar →</button>
         </div>
         {accounts.length ? (
           <div className="mt-5 space-y-3">
-            {accounts.map((account) => <div key={account.id} className="flex items-center justify-between rounded-xl bg-slate-950 p-3 text-sm"><span>{account.name}</span><span className="font-semibold text-orange-300">{account.kind === "credit_card" ? "Cartão" : "Conta"}</span></div>)}
+            {accounts.map((account) => <div key={account.id} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs"><span className="font-medium">{account.name}</span><span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">{account.kind === "credit_card" ? "Cartão" : "Conta"}</span></div>)}
           </div>
         ) : (
-          <div className="mt-5 rounded-xl border border-dashed border-slate-700 bg-slate-950 p-4">
-            <p className="font-semibold text-white">Nenhuma conta cadastrada</p>
-            <p className="mt-1 text-sm text-slate-400">Adicione uma conta, banco ou cartão para começar a lançar entradas e saídas.</p>
-            <button onClick={() => setAccountModal(true)} className="mt-4 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white">
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+            <p className="font-medium text-slate-950">Nenhuma conta cadastrada</p>
+            <p className="mt-1 text-xs text-slate-500">Adicione uma conta, banco ou cartão para começar a lançar entradas e saídas.</p>
+            <button onClick={() => setAccountModal(true)} className="mt-4 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white">
               + Criar conta
             </button>
           </div>
@@ -456,19 +600,19 @@ export default function FinancePanel({ categories, accounts, transactions, metri
         {activeView === "entries" ? (
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">Lançamentos</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">Lançamentos</h2>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setEntrySearchOpen((value) => !value)}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl border text-slate-200 ${
-                    entrySearchOpen ? "border-orange-500/60 bg-orange-500/20" : "border-slate-700 bg-slate-900"
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-slate-700 shadow-sm ${
+                    entrySearchOpen ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"
                   }`}
                   aria-label="Buscar lançamentos"
                 >
                   <Search size={19} />
                 </button>
-                <button onClick={openTransactionModal} className="rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-300 hover:bg-orange-500/20">
+                <button onClick={openTransactionModal} className="rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-emerald-700">
                   + Novo
                 </button>
               </div>
@@ -476,22 +620,22 @@ export default function FinancePanel({ categories, accounts, transactions, metri
 
             {entrySearchOpen ? (
               <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-                <div className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                   <Search size={18} className="shrink-0 text-slate-400" />
                   <input
                     value={entrySearch}
                     onChange={(event) => setEntrySearch(event.target.value)}
                     placeholder="Buscar por local, categoria, apoiador..."
-                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-slate-500"
+                    className="min-w-0 flex-1 bg-transparent text-xs text-slate-950 outline-none placeholder:text-slate-500"
                   />
                 </div>
-                <button onClick={() => setDetailModal(true)} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-300 hover:text-white">
+                <button onClick={() => setDetailModal(true)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-700 shadow-sm hover:text-slate-950">
                   Filtro avançado
                 </button>
               </div>
             ) : null}
 
-            <div className="mb-5 grid grid-cols-4 border-b border-slate-800">
+            <div className="mb-5 grid grid-cols-4 rounded-2xl bg-slate-100 p-1">
               {[
                 { key: "all", label: "Todos" },
                 { key: "income", label: "↑ Entradas" },
@@ -502,10 +646,10 @@ export default function FinancePanel({ categories, accounts, transactions, metri
                   key={item.key}
                   type="button"
                   onClick={() => setEntryFilter(item.key as typeof entryFilter)}
-                  className={`min-h-12 border-b-2 px-1 text-sm font-semibold transition sm:text-base ${
+                  className={`min-h-10 border-b-2 px-1 text-[9px] font-medium transition sm:text-xs ${
                     entryFilter === item.key
-                      ? "border-orange-400 text-orange-300"
-                      : "border-transparent text-slate-500 hover:text-slate-300"
+                      ? "rounded-xl border-transparent bg-white text-slate-950 shadow-sm"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   {item.label}
@@ -513,17 +657,17 @@ export default function FinancePanel({ categories, accounts, transactions, metri
               ))}
             </div>
 
-            <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-              <Link href={`/admin/financeiro?month=${prevMonth}&currency=${filters.currency}`} className="text-2xl text-slate-400 hover:text-white">‹</Link>
-              <p className="text-lg font-bold capitalize text-white">{monthLabel}</p>
-              <Link href={`/admin/financeiro?month=${nextMonth}&currency=${filters.currency}`} className="text-2xl text-slate-400 hover:text-white">›</Link>
+            <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <button type="button" onClick={() => { setSelectedMonth(prevMonth); setRangeFilter({ from: "", to: "" }); }} className="text-2xl text-slate-500 hover:text-slate-950">‹</button>
+              <p className="text-base font-semibold capitalize text-slate-950">{monthLabel}</p>
+              <button type="button" onClick={() => { setSelectedMonth(nextMonth); setRangeFilter({ from: "", to: "" }); }} className="text-2xl text-slate-500 hover:text-slate-950">›</button>
             </div>
 
             <div className="space-y-6">
               {entryDates.map((date) => (
                 <div key={date}>
                   <div className="mb-3 flex items-center gap-3">
-                    <p className="shrink-0 font-mono text-sm font-semibold tracking-widest text-slate-400">{dateBR(date)}</p>
+                    <p className="shrink-0 font-mono text-[10px] font-normal tracking-widest text-slate-400">{dateBR(date)}</p>
                     <div className="h-px flex-1 bg-slate-800" />
                   </div>
                   <div className="space-y-3">
@@ -532,31 +676,31 @@ export default function FinancePanel({ categories, accounts, transactions, metri
                       return (
                         <div
                           key={transaction.id}
-                          className={`grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:grid-cols-[1fr_auto_auto] sm:items-center ${
+                          className={`grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto_auto] sm:items-center ${
                             isIncome ? "border-l-4 border-l-emerald-400" : "border-l-4 border-l-red-400"
                           }`}
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-3">
                               <span className={`h-2.5 w-2.5 rounded-full ${isIncome ? "bg-emerald-400" : "bg-red-400"}`} />
-                              <p className="truncate text-lg font-semibold text-white">{transaction.description}</p>
+                              <p className="truncate text-sm font-medium text-slate-950">{transaction.description}</p>
                             </div>
-                            <p className="mt-1 truncate pl-5 text-sm text-slate-400">
+                            <p className="mt-1 truncate pl-5 text-[10px] text-slate-400">
                               {categoryName(transaction)} · {accountName(transaction)}
                             </p>
                           </div>
                           <div className="pl-5 text-left sm:pl-0 sm:text-right">
-                            <p className={`text-xl font-bold ${isIncome ? "text-emerald-300" : "text-red-300"}`}>
+                            <p className={`text-base font-semibold ${isIncome ? "text-emerald-700" : "text-red-500"}`}>
                               {isIncome ? "+" : "-"}{money(transaction.amount, transaction.currency)}
                             </p>
-                            <p className="text-xs font-semibold text-slate-500">{transaction.currency}</p>
+                            <p className="text-[9px] font-normal text-slate-500">{transaction.currency}</p>
                           </div>
                           <div className="flex justify-end gap-1">
-                            <button onClick={() => setEditing(transaction)} className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Editar lançamento">
+                            <button onClick={() => setEditing(transaction)} className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-950" aria-label="Editar lançamento">
                               <Pencil size={15} />
                             </button>
                             <form action={deleteTransaction.bind(null, transaction.id)}>
-                              <button className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-red-300" aria-label="Excluir lançamento">
+                              <button className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-500" aria-label="Excluir lançamento">
                                 <Trash2 size={15} />
                               </button>
                             </form>
@@ -568,7 +712,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
                 </div>
               ))}
               {!entryDates.length ? (
-                <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-500">
                   Nenhum lançamento encontrado neste mês.
                 </div>
               ) : null}
@@ -577,35 +721,35 @@ export default function FinancePanel({ categories, accounts, transactions, metri
         ) : null}
 
         {activeView === "transfers" ? (
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
-            <h2 className="text-xl font-semibold">Transferências</h2>
-            <p className="mt-2 text-sm text-slate-400">Base pronta para mover valores entre contas. A lógica contábil da transferência entra na próxima etapa.</p>
-            <button onClick={() => setAccountModal(true)} className="mt-5 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white">Gerenciar contas</button>
+          <section className="app-card p-4 sm:p-5">
+            <h2 className="text-base font-semibold">Transferências</h2>
+            <p className="mt-2 text-xs text-slate-400">Base pronta para mover valores entre contas. A lógica contábil da transferência entra na próxima etapa.</p>
+            <button onClick={() => setAccountModal(true)} className="mt-5 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white">Gerenciar contas</button>
           </section>
         ) : null}
 
         {activeView === "settings" ? (
-          <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
-            <h2 className="text-xl font-semibold">Ajustes</h2>
+          <section className="app-card p-4 sm:p-5">
+            <h2 className="text-base font-semibold">Ajustes</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <button onClick={() => setAccountModal(true)} className="rounded-2xl border border-slate-800 p-4 text-left font-semibold">Contas</button>
-              <button onClick={() => setCategoryModal(true)} className="rounded-2xl border border-slate-800 p-4 text-left font-semibold">Categorias</button>
-              <Link href="/admin/financeiro/cambio" className="rounded-2xl border border-slate-800 p-4 text-left font-semibold">Câmbio</Link>
+              <button onClick={() => setAccountModal(true)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-xs font-medium">Contas</button>
+              <button onClick={() => setCategoryModal(true)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-xs font-medium">Categorias</button>
+              <Link href="/admin/financeiro/cambio" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-xs font-medium">Câmbio</Link>
             </div>
           </section>
         ) : null}
       </div>
 
       {(activeView === "home" || activeView === "entries") ? (
-        <button onClick={openTransactionModal} className="fixed bottom-20 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-2xl font-semibold text-white shadow-xl">+</button>
+        <button onClick={openTransactionModal} className="fixed bottom-32 right-5 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-2xl font-medium text-white shadow-lg lg:bottom-20">+</button>
       ) : null}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-800 bg-slate-950/95 px-2 py-1.5 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl">
-          <button onClick={() => setActiveView("home")} className={`${viewButtonClass} ${activeView === "home" ? "text-orange-300" : "text-slate-400"}`}><Home size={19} />Início</button>
-          <button onClick={() => setActiveView("entries")} className={`${viewButtonClass} ${activeView === "entries" ? "text-orange-300" : "text-slate-400"}`}><ArrowUpDown size={19} />Lançamentos</button>
-          <button onClick={() => setActiveView("transfers")} className={`${viewButtonClass} ${activeView === "transfers" ? "text-orange-300" : "text-slate-400"}`}><ArrowLeftRight size={19} />Transferências</button>
-          <Link href="/admin/financeiro/ajustes" className={`${viewButtonClass} ${activeView === "settings" ? "text-orange-300" : "text-slate-400"}`}><Settings size={19} />Ajustes</Link>
+      <nav className="fixed bottom-12 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_28px_rgb(15_23_42/0.08)] backdrop-blur lg:bottom-0">
+        <div className="mx-auto flex max-w-3xl gap-1">
+          <button onClick={() => setActiveView("home")} className={`${viewButtonClass} rounded-2xl ${activeView === "home" ? "bg-emerald-50 text-emerald-700" : "text-slate-500"}`}><Home size={19} />Início</button>
+          <button onClick={() => setActiveView("entries")} className={`${viewButtonClass} rounded-2xl ${activeView === "entries" ? "bg-emerald-50 text-emerald-700" : "text-slate-500"}`}><ArrowUpDown size={19} />Lançamentos</button>
+          <button onClick={() => setActiveView("transfers")} className={`${viewButtonClass} rounded-2xl ${activeView === "transfers" ? "bg-emerald-50 text-emerald-700" : "text-slate-500"}`}><ArrowLeftRight size={19} />Transferências</button>
+          <Link href="/admin/financeiro/ajustes" className={`${viewButtonClass} rounded-2xl ${activeView === "settings" ? "bg-emerald-50 text-emerald-700" : "text-slate-500"}`}><Settings size={19} />Ajustes</Link>
         </div>
       </nav>
 
@@ -776,17 +920,26 @@ export default function FinancePanel({ categories, accounts, transactions, metri
       </Modal>
 
       <Modal title="Relatório detalhado" open={detailModal} onClose={() => setDetailModal(false)}>
-        <form className="mb-5 grid gap-3 md:grid-cols-5">
-          <input type="date" name="from" defaultValue={filters.from} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
-          <input type="date" name="to" defaultValue={filters.to} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
+        <form
+          className="mb-5 grid gap-3 md:grid-cols-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            setRangeFilter({ from: String(formData.get("from") || ""), to: String(formData.get("to") || "") });
+            setDetailFilters({ category: String(formData.get("category") || ""), type: String(formData.get("type") || "") });
+            setDetailModal(false);
+          }}
+        >
+          <input type="date" name="from" defaultValue={rangeFilter.from} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
+          <input type="date" name="to" defaultValue={rangeFilter.to} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
           <select name="currency" defaultValue={filters.currency} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
           </select>
-          <select name="category" defaultValue={filters.category} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select name="category" defaultValue={detailFilters.category} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             <option value="">Todas categorias</option>
             {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
-          <select name="type" defaultValue={filters.type} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select name="type" defaultValue={detailFilters.type} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             <option value="">Entrada e saída</option>
             <option value="income">Entradas</option>
             <option value="expense">Saídas</option>
@@ -794,7 +947,7 @@ export default function FinancePanel({ categories, accounts, transactions, metri
           <button className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 md:w-fit">Filtrar</button>
         </form>
         <div className="divide-y divide-slate-800">
-          {transactions.map((transaction) => (
+          {filteredTransactions.map((transaction) => (
             <div key={transaction.id} className="grid gap-3 py-4 md:grid-cols-[90px_1fr_auto_auto] md:items-center">
               <p className="text-sm text-slate-400">{dateBR(transaction.date)}</p>
               <div><p className="font-medium text-white">{transaction.description}</p><p className="text-xs text-slate-500">{categoryName(transaction)} · {transaction.type === "income" ? "Entrada" : "Saída"} · {transaction.currency}</p></div>
