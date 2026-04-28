@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BarChart3, Building2, CalendarDays, Funnel, Home, Landmark, Paintbrush, Pencil, Plus, RotateCcw, Search, Settings, Trash2, WalletCards, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BarChart3, Building2, CalendarDays, Funnel, Home, Landmark, LoaderCircle, Paintbrush, Pencil, Plus, RotateCcw, Search, Settings, Trash2, WalletCards, X } from "lucide-react";
 import {
   addAccount,
   addCategory,
@@ -202,19 +202,35 @@ function Modal({
   );
 }
 
+function BusyIndicator({ show }: { show: boolean }) {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-x-0 top-3 z-[90] flex justify-center px-4 pointer-events-none">
+      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg shadow-slate-900/10">
+        <LoaderCircle size={15} className="animate-spin" />
+        Processando...
+      </div>
+    </div>
+  );
+}
+
 function TransactionForm({
   categories,
   accounts,
   transaction,
   onEditAccounts,
+  onSaved,
   initialBalance,
 }: {
   categories: FinanceCategory[];
   accounts: FinanceAccount[];
   transaction?: FinanceTransaction;
   onEditAccounts: () => void;
+  onSaved: () => void;
   initialBalance?: boolean;
 }) {
+  const router = useRouter();
   const [type, setType] = useState<"income" | "expense">(transaction?.type ?? (initialBalance ? "income" : "expense"));
   const mode = transaction?.mode ?? (initialBalance ? "initial_balance" : "normal");
   const [currency, setCurrency] = useState(transaction?.currency ?? accounts[0]?.currency ?? "BRL");
@@ -229,6 +245,8 @@ function TransactionForm({
   const [quickCategoryOpen, setQuickCategoryOpen] = useState(false);
   const [quickCategoryName, setQuickCategoryName] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(Boolean(transaction?.location || transaction?.notes));
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
   const [pendingCategory, startCategoryTransition] = useTransition();
   const action = transaction ? updateTransaction.bind(null, transaction.id) : addTransaction;
 
@@ -250,8 +268,24 @@ function TransactionForm({
     });
   }
 
+  async function submitTransaction(formData: FormData) {
+    setSaving(true);
+    setFormError("");
+    let saved = false;
+    try {
+      await action(formData);
+      saved = true;
+      router.refresh();
+      onSaved();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Não foi possível salvar o lançamento.");
+    } finally {
+      if (!saved) setSaving(false);
+    }
+  }
+
   return (
-    <form action={action} className="grid w-full min-w-0 max-w-full gap-3 overflow-hidden md:grid-cols-2">
+    <form action={submitTransaction} className="grid w-full min-w-0 max-w-full gap-3 overflow-hidden md:grid-cols-2">
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="due_date" value={transaction?.due_date ?? ""} />
@@ -335,8 +369,12 @@ function TransactionForm({
           </div>
         </>
       ) : null}
-      <button type="submit" className="w-full rounded-xl bg-orange-500 px-5 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-orange-600 md:col-span-2">
-        Salvar
+      {formError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 md:col-span-2">{formError}</p>
+      ) : null}
+      <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-orange-600 disabled:cursor-wait disabled:opacity-75 md:col-span-2">
+        {saving ? <LoaderCircle size={18} className="animate-spin" /> : null}
+        {saving ? "Salvando..." : "Salvar"}
       </button>
       {quickCategoryOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-x-hidden bg-slate-950/80 px-3 backdrop-blur">
@@ -363,9 +401,12 @@ function TransactionForm({
 
 export default function FinancePanel({ categories, accounts, transactions, filters }: Props) {
   const router = useRouter();
+  const busyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endDateRef = useRef<HTMLInputElement | null>(null);
   const [activeView, setActiveView] = useState<"home" | "entries" | "transfers" | "settings">("home");
   const [selectedMonth, setSelectedMonth] = useState(filters.month);
   const [rangeFilter, setRangeFilter] = useState({ from: filters.from, to: filters.to });
+  const [currencyFilter, setCurrencyFilter] = useState(filters.currency);
   const [detailFilters, setDetailFilters] = useState({ category: filters.category, type: filters.type });
   const [entryFilter, setEntryFilter] = useState<"all" | "income" | "expense" | "card">("all");
   const [entrySearchOpen, setEntrySearchOpen] = useState(false);
@@ -377,6 +418,10 @@ export default function FinancePanel({ categories, accounts, transactions, filte
   const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(null);
   const [accountRequiredModal, setAccountRequiredModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
+  const [dateRangeModal, setDateRangeModal] = useState(false);
+  const [dateRangeStep, setDateRangeStep] = useState<"from" | "to">("from");
+  const [draftRange, setDraftRange] = useState({ from: rangeFilter.from || "", to: rangeFilter.to || "" });
+  const [actionBusy, setActionBusy] = useState(false);
   const [editing, setEditing] = useState<FinanceTransaction | null>(null);
   const monthDate = new Date(`${selectedMonth}-02T00:00:00`);
   const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString().slice(0, 10);
@@ -406,7 +451,7 @@ export default function FinancePanel({ categories, accounts, transactions, filte
     const isInRange = transaction.date >= selectedRangeStart && transaction.date <= selectedRangeEnd;
     const matchesCategory = !detailFilters.category || transaction.category_id === detailFilters.category;
     const matchesType = !detailFilters.type || transaction.type === detailFilters.type;
-    return isInRange && matchesCategory && matchesType && transaction.currency === filters.currency;
+    return isInRange && matchesCategory && matchesType && transaction.currency === currencyFilter;
   });
   const computedMetrics = useMemo(() => {
     const income = filteredTransactions
@@ -471,6 +516,43 @@ export default function FinancePanel({ categories, accounts, transactions, filte
     setTransactionModal(true);
   }
 
+  function showActionFeedback() {
+    setActionBusy(true);
+    if (busyTimer.current) clearTimeout(busyTimer.current);
+    busyTimer.current = setTimeout(() => setActionBusy(false), 550);
+  }
+
+  function openDateRangeModal() {
+    setDraftRange({ from: rangeFilter.from || monthStart, to: rangeFilter.to || monthEnd });
+    setDateRangeStep("from");
+    setDateRangeModal(true);
+  }
+
+  function applyDateRange() {
+    setRangeFilter({
+      from: draftRange.from || monthStart,
+      to: draftRange.to || draftRange.from || monthEnd,
+    });
+    setDateRangeModal(false);
+  }
+
+  useEffect(() => {
+    if (dateRangeModal && dateRangeStep === "to") {
+      endDateRef.current?.focus();
+      try {
+        endDateRef.current?.showPicker?.();
+      } catch {
+        // Some browsers only allow showPicker directly inside the click event.
+      }
+    }
+  }, [dateRangeModal, dateRangeStep]);
+
+  useEffect(() => {
+    return () => {
+      if (busyTimer.current) clearTimeout(busyTimer.current);
+    };
+  }, []);
+
   const periodTabs = [
     { key: "today", label: "Hoje", from: currentDay, to: currentDay, month: currentDay.slice(0, 7) },
     { key: "week", label: "7 dias atrás", from: sevenDaysAgo, to: currentDay, month: currentDay.slice(0, 7) },
@@ -479,7 +561,15 @@ export default function FinancePanel({ categories, accounts, transactions, filte
   ];
 
   return (
-    <div className="finance-panel -mx-4 -my-6 min-h-screen bg-slate-50 pb-28 text-slate-950 sm:-mx-6">
+    <div
+      className="finance-panel -mx-4 -my-6 min-h-screen bg-slate-50 pb-28 text-slate-950 sm:-mx-6"
+      onClickCapture={(event) => {
+        const target = event.target as HTMLElement;
+        const actionable = target.closest("button, a");
+        if (actionable && !actionable.hasAttribute("disabled")) showActionFeedback();
+      }}
+    >
+      <BusyIndicator show={actionBusy} />
       {activeView !== "entries" ? (
         <div className="px-2 pt-2 text-slate-950 sm:px-3">
           <div className="mx-auto max-w-6xl rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm shadow-slate-200/80 sm:p-3">
@@ -513,10 +603,14 @@ export default function FinancePanel({ categories, accounts, transactions, filte
             </div>
 
             <div className="mt-3 flex items-center gap-2.5">
-              <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-950 shadow-sm shadow-slate-200 sm:h-10 sm:px-4 sm:text-sm">
+              <button
+                type="button"
+                onClick={openDateRangeModal}
+                className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-medium text-slate-950 shadow-sm shadow-slate-200 transition hover:bg-slate-50 sm:h-10 sm:px-4 sm:text-sm"
+              >
                 <CalendarDays size={16} strokeWidth={2} className="shrink-0" />
                 <span className="truncate">{selectedRangeLabel}</span>
-              </div>
+              </button>
 
               <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200 sm:h-10">
                 <button type="button" onClick={() => router.refresh()} className="flex w-10 items-center justify-center border-r border-slate-200 text-slate-950 sm:w-11" aria-label="Atualizar dados">
@@ -538,22 +632,22 @@ export default function FinancePanel({ categories, accounts, transactions, filte
         {activeView === "home" ? (
           <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard label="Entradas" value={money(computedMetrics.income, filters.currency)} tone="income">
+        <MetricCard label="Entradas" value={money(computedMetrics.income, currencyFilter)} tone="income">
           <p className="text-[11px] font-normal text-slate-500">Recebido no período</p>
         </MetricCard>
-        <MetricCard label="Saídas" value={money(computedMetrics.expenses, filters.currency)} tone="expense">
+        <MetricCard label="Saídas" value={money(computedMetrics.expenses, currencyFilter)} tone="expense">
           <p className="text-[11px] font-normal text-slate-500">Despesas registradas</p>
         </MetricCard>
-        <MetricCard label="Saldo" value={money(computedMetrics.balance, filters.currency)} tone="balance">
+        <MetricCard label="Saldo" value={money(computedMetrics.balance, currencyFilter)} tone="balance">
           <p className="text-[11px] font-normal text-slate-500">Receita menos despesas</p>
         </MetricCard>
-        <MetricCard label="Dízimo" value={money(computedMetrics.tithe, filters.currency)} tone="tithe">
+        <MetricCard label="Dízimo" value={money(computedMetrics.tithe, currencyFilter)} tone="tithe">
           <p className="text-[11px] font-normal text-slate-500">Base das entradas marcadas</p>
         </MetricCard>
       </div>
       <div className="app-card mt-2.5 rounded-xl p-2.5 sm:p-3">
         <p className="flex items-center gap-1.5 text-[9px] font-medium text-blue-700 sm:text-[11px]"><CalendarDays size={11} />Saldo previsto</p>
-        <p className="mt-1.5 text-base font-semibold leading-tight text-blue-700 sm:text-lg">{money(computedMetrics.projectedBalance, filters.currency)}</p>
+        <p className="mt-1.5 text-base font-semibold leading-tight text-blue-700 sm:text-lg">{money(computedMetrics.projectedBalance, currencyFilter)}</p>
         <p className="mt-1 text-[9px] font-normal text-slate-500 sm:text-[10px]">Considera lançamentos e vencimentos do mês.</p>
       </div>
 
@@ -566,7 +660,7 @@ export default function FinancePanel({ categories, accounts, transactions, filte
           <div className="space-y-4">
             {computedMetrics.topExpenses.map((item) => (
               <div key={item.name}>
-                <div className="mb-2 flex justify-between gap-3 text-xs"><span>{item.name}</span><span className="font-medium">{money(item.amount, filters.currency)}</span></div>
+                <div className="mb-2 flex justify-between gap-3 text-xs"><span>{item.name}</span><span className="font-medium">{money(item.amount, currencyFilter)}</span></div>
                 <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max((item.amount / maxExpense) * 100, 4)}%` }} /></div>
               </div>
             ))}
@@ -754,7 +848,12 @@ export default function FinancePanel({ categories, accounts, transactions, filte
       </nav>
 
       <Modal title="Novo lançamento" open={transactionModal} onClose={() => setTransactionModal(false)}>
-        <TransactionForm categories={categories} accounts={accounts} onEditAccounts={() => setAccountModal(true)} />
+        <TransactionForm
+          categories={categories}
+          accounts={accounts}
+          onEditAccounts={() => setAccountModal(true)}
+          onSaved={() => setTransactionModal(false)}
+        />
       </Modal>
 
       <Modal title="Cadastre uma conta" open={accountRequiredModal} onClose={() => setAccountRequiredModal(false)}>
@@ -919,6 +1018,72 @@ export default function FinancePanel({ categories, accounts, transactions, filte
         ) : null}
       </Modal>
 
+      <Modal title="Período" open={dateRangeModal} onClose={() => setDateRangeModal(false)}>
+        <div className="grid gap-4 text-slate-950">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">
+              {dateRangeStep === "from" ? "Escolha a data de início" : "Agora escolha a data de fim"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">O painel será filtrado por esse intervalo.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Início</span>
+              <input
+                autoFocus
+                type="date"
+                value={draftRange.from}
+                onChange={(event) => {
+                  setDraftRange((current) => ({ ...current, from: event.target.value }));
+                  setDateRangeStep("to");
+                }}
+                className={`rounded-2xl border px-3 py-3 text-slate-950 outline-none ${
+                  dateRangeStep === "from" ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"
+                }`}
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Fim</span>
+              <input
+                ref={endDateRef}
+                type="date"
+                value={draftRange.to}
+                min={draftRange.from || undefined}
+                onChange={(event) => {
+                  setDraftRange((current) => ({ ...current, to: event.target.value }));
+                  setDateRangeStep("to");
+                }}
+                className={`rounded-2xl border px-3 py-3 text-slate-950 outline-none ${
+                  dateRangeStep === "to" ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"
+                }`}
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-[1fr_1.4fr] gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setRangeFilter({ from: "", to: "" });
+                setDateRangeModal(false);
+              }}
+              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700"
+            >
+              Limpar
+            </button>
+            <button
+              type="button"
+              onClick={applyDateRange}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+            >
+              <CalendarDays size={16} />
+              Filtrar período
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal title="Relatório detalhado" open={detailModal} onClose={() => setDetailModal(false)}>
         <form
           className="mb-5 grid gap-3 md:grid-cols-5"
@@ -926,13 +1091,14 @@ export default function FinancePanel({ categories, accounts, transactions, filte
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
             setRangeFilter({ from: String(formData.get("from") || ""), to: String(formData.get("to") || "") });
+            setCurrencyFilter(String(formData.get("currency") || "BRL"));
             setDetailFilters({ category: String(formData.get("category") || ""), type: String(formData.get("type") || "") });
             setDetailModal(false);
           }}
         >
           <input type="date" name="from" defaultValue={rangeFilter.from} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
           <input type="date" name="to" defaultValue={rangeFilter.to} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white" />
-          <select name="currency" defaultValue={filters.currency} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select name="currency" defaultValue={currencyFilter} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             {CURRENCIES.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
           </select>
           <select name="category" defaultValue={detailFilters.category} className="rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2 text-white">
@@ -962,7 +1128,15 @@ export default function FinancePanel({ categories, accounts, transactions, filte
       </Modal>
 
       <Modal title="Editar lançamento" open={Boolean(editing)} onClose={() => setEditing(null)}>
-        {editing ? <TransactionForm categories={categories} accounts={accounts} transaction={editing} onEditAccounts={() => setAccountModal(true)} /> : null}
+        {editing ? (
+          <TransactionForm
+            categories={categories}
+            accounts={accounts}
+            transaction={editing}
+            onEditAccounts={() => setAccountModal(true)}
+            onSaved={() => setEditing(null)}
+          />
+        ) : null}
       </Modal>
     </div>
   );

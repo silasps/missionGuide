@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import FinanceClickFeedback from "@/components/finance-click-feedback";
 import { ArrowLeft, CreditCard, Landmark, MessageCircle, Pencil, Plus, Trash2, Wallet, X } from "lucide-react";
 import {
   addAccount,
@@ -217,7 +218,7 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
   }
 
   return (
-    <div className="-mx-4 -my-6 min-h-screen bg-slate-950 text-white sm:-mx-6">
+    <FinanceClickFeedback className="-mx-4 -my-6 min-h-screen bg-slate-950 text-white sm:-mx-6">
       <div className="bg-slate-950 px-4 pt-4 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="mb-3">
@@ -395,6 +396,6 @@ export default function FinanceSettingsPanel({ accounts, categories }: Props) {
       <Modal title="Editar conta" open={Boolean(editingAccount)} onClose={() => setEditingAccount(null)}>
         {editingAccount ? <AccountForm account={editingAccount} onCancel={() => setEditingAccount(null)} /> : null}
       </Modal>
-    </div>
+    </FinanceClickFeedback>
   );
 }

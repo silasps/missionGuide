@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import FinanceClickFeedback from "@/components/finance-click-feedback";
 
 const CURRENCIES = ["BRL", "USD", "EUR", "GBP", "ARS", "CLP", "PYG", "UYU", "CAD", "JPY"];
 
@@ -48,7 +49,7 @@ export default function CurrencyConverter() {
   }, [amount, data, target]);
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <FinanceClickFeedback className="mx-auto max-w-3xl">
       <Link href="/admin/financeiro" className="text-sm text-slate-400 hover:text-white">
         Voltar para financeiro
       </Link>
@@ -89,6 +90,6 @@ export default function CurrencyConverter() {
         ) : null}
         {error ? <p className="mt-5 text-sm text-red-300">{error}</p> : null}
       </div>
-    </div>
+    </FinanceClickFeedback>
   );
 }
