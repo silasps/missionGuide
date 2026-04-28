@@ -1035,7 +1035,11 @@ export default function FinancePanel({ categories, accounts, transactions, filte
                 type="date"
                 value={draftRange.from}
                 onChange={(event) => {
-                  setDraftRange((current) => ({ ...current, from: event.target.value }));
+                  const from = event.target.value;
+                  setDraftRange((current) => ({
+                    from,
+                    to: current.to && current.to < from ? from : current.to,
+                  }));
                   setDateRangeStep("to");
                 }}
                 className={`rounded-2xl border px-3 py-3 text-slate-950 outline-none ${
