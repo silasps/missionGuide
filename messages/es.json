@@ -636,7 +636,7 @@
     "invite": "Invitar",
     "inviteHint": "La persona ya debe tener una cuenta en go→guide con ese correo.",
     "buyMoreSeats": "Comprar más plazas",
-    "addonLine": "+{seats} gestores — $ {price}/mes",
+    "addonLine": "+{seats} gestores — R$ {price}/mes",
     "buy": "Comprar",
     "paymentsNotConfigured": "Pagos aún no configurados — próximamente.",
     "seatLimitReached": "Se alcanzó el límite de gestores de tu plan. Compra más plazas o mejora tu plan.",

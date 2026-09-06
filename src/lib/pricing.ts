@@ -11,8 +11,8 @@ export interface PricingPlan {
 // para suportar os 3 idiomas. Aqui só o que independe de idioma.
 export const PRICING_PLANS: PricingPlan[] = [
   { id: 'free', priceMonthly: 0, priceYearly: 0 },
-  { id: 'pro', priceMonthly: 20, priceYearly: 200, highlighted: true },
-  { id: 'mission', priceMonthly: 45, priceYearly: 450 },
+  { id: 'pro', priceMonthly: 12.9, priceYearly: 129.9, highlighted: true },
+  { id: 'mission', priceMonthly: 16.9, priceYearly: 169.9 },
 ]
 
 export interface ManagerAddon {

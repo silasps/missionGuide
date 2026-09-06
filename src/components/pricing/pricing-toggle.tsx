@@ -82,7 +82,7 @@ export function PricingToggle() {
               <p className="text-sm text-muted-foreground mt-1">{tPricing(`${plan.id}.tagline`)}</p>
               <div className="mt-4 mb-6">
                 <span className="text-3xl font-bold">
-                  {price === 0 ? t('free') : `$${price}`}
+                  {price === 0 ? t('free') : `R$ ${price.toFixed(2).replace('.', ',')}`}
                 </span>
                 {price > 0 && (
                   <span className="text-muted-foreground text-sm">{interval === 'monthly' ? t('perMonth') : t('perYear')}</span>

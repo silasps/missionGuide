@@ -234,7 +234,7 @@ export default async function HomePage() {
             {PRICING_PLANS.map((plan) => (
               <div key={plan.id} className={cn('rounded-xl ring-1 ring-foreground/10 bg-card p-5', plan.highlighted && 'ring-2 ring-primary')}>
                 <p className="font-semibold text-sm">{tPricing(`${plan.id}.name`)}</p>
-                <p className="text-2xl font-bold mt-2">{plan.priceMonthly === 0 ? t('free') : `$${plan.priceMonthly}`}
+                <p className="text-2xl font-bold mt-2">{plan.priceMonthly === 0 ? t('free') : `R$ ${plan.priceMonthly.toFixed(2).replace('.', ',')}`}
                   {plan.priceMonthly > 0 && <span className="text-sm font-normal text-muted-foreground">{t('perMonth')}</span>}
                 </p>
                 <ul className="mt-3 space-y-1.5">
