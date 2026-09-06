@@ -13,6 +13,7 @@ interface Props {
   postsCount: number
   projectsCount: number
   achievementsCount: number
+  projectsSupportedCount: number
   followersCount?: number
   followingCount?: number
 }
@@ -25,7 +26,7 @@ function extractDomain(url: string) {
   }
 }
 
-export async function ProfileHeader({ profile, postsCount, projectsCount, achievementsCount, followersCount, followingCount }: Props) {
+export async function ProfileHeader({ profile, postsCount, projectsCount, achievementsCount, projectsSupportedCount, followersCount, followingCount }: Props) {
   const t = await getTranslations('PublicProfile')
   const locale = (await getLocale()) as Locale
   const isPublic = profile.privacy_mode === 'public'
@@ -59,12 +60,19 @@ export async function ProfileHeader({ profile, postsCount, projectsCount, achiev
           )}
         </div>
 
-        <ProfileStats
-          postsCount={postsCount} postsLabel={t('statsPosts', { count: postsCount })}
-          projectsCount={projectsCount} projectsLabel={t('statsProjects', { count: projectsCount })}
-          achievementsCount={achievementsCount} achievementsLabel={t('statsAchievements', { count: achievementsCount })}
-          username={profile.username}
-        />
+        {profile.user_role === 'missionary' ? (
+          <ProfileStats
+            postsCount={postsCount} postsLabel={t('statsPosts', { count: postsCount })}
+            projectsCount={projectsCount} projectsLabel={t('statsProjects', { count: projectsCount })}
+            achievementsCount={achievementsCount} achievementsLabel={t('statsAchievements', { count: achievementsCount })}
+            username={profile.username}
+          />
+        ) : (
+          <Link href="/dashboard/meus-projetos" className="flex-1 hover:opacity-70 transition-opacity">
+            <div className="text-base font-semibold leading-tight">{projectsSupportedCount}</div>
+            <div className="text-xs text-muted-foreground">{t('statsProjectsSupported', { count: projectsSupportedCount })}</div>
+          </Link>
+        )}
       </div>
 
       {/* Seguidores/Seguindo — só para missionários, linha própria pra caber bem no mobile.

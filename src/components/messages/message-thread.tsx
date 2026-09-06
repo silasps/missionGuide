@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { conversationId } from '@/lib/crypto/conversation'
 import * as keyManager from '@/lib/crypto/key-manager'
 import { Message } from '@/types/database'
-import { formatRelativeTime, cn } from '@/lib/utils'
+import { formatRelativeTime, getInitials, cn } from '@/lib/utils'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { MessageComposer } from './message-composer'
 import { Loader2 } from 'lucide-react'
 
@@ -14,13 +17,16 @@ interface Props {
   myUserId: string
   otherUserId: string
   otherName: string
+  otherUsername: string | null
+  otherAvatarUrl: string | null
 }
 
 interface DecryptedMessage extends Message {
   plaintext: string
 }
 
-export function MessageThread({ profileId, myUserId, otherUserId, otherName }: Props) {
+export function MessageThread({ profileId, myUserId, otherUserId, otherName, otherUsername, otherAvatarUrl }: Props) {
+  const t = useTranslations('Messages')
   const [messages, setMessages] = useState<DecryptedMessage[]>([])
   const [loading, setLoading] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -71,8 +77,19 @@ export function MessageThread({ profileId, myUserId, otherUserId, otherName }: P
 
   return (
     <div className="flex flex-col h-[calc(100vh-14rem)] md:h-[600px] rounded-xl border bg-card overflow-hidden">
-      <div className="px-4 py-3 border-b">
-        <p className="font-medium text-sm">{otherName}</p>
+      <div className="px-4 py-3 border-b flex items-center gap-3">
+        <Avatar className="h-9 w-9 shrink-0">
+          {otherAvatarUrl && <AvatarImage src={otherAvatarUrl} alt={otherName} />}
+          <AvatarFallback className="text-xs">{getInitials(otherName)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">{otherName}</p>
+        </div>
+        {otherUsername && (
+          <Link href={`/${otherUsername}`} target="_blank" className="text-xs font-medium text-primary hover:underline shrink-0">
+            {t('viewProfile')}
+          </Link>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-0.5">

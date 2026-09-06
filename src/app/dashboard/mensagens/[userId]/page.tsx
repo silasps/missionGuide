@@ -28,14 +28,20 @@ export default async function ConversaPage({ params }: Props) {
   await markMessageNotificationsRead(supabase, user!.id, userId)
 
   const { data: partner } = await supabase.from('partners').select('name').eq('profile_id', profile.id).eq('user_id', userId).maybeSingle()
-  const { data: senderProfile } = await supabase.from('profiles').select('display_name').eq('user_id', userId).maybeSingle()
+  const { data: senderProfile } = await supabase.from('profiles').select('display_name, username, avatar_url').eq('user_id', userId).maybeSingle()
   const otherName = partner?.name ?? senderProfile?.display_name ?? 'Conversa'
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{otherName}</h1>
+    <div className="max-w-xl mx-auto space-y-4">
       <E2EEGate userId={user!.id}>
-        <MessageThread profileId={profileId} myUserId={user!.id} otherUserId={userId} otherName={otherName} />
+        <MessageThread
+          profileId={profileId}
+          myUserId={user!.id}
+          otherUserId={userId}
+          otherName={otherName}
+          otherUsername={senderProfile?.username ?? null}
+          otherAvatarUrl={senderProfile?.avatar_url ?? null}
+        />
       </E2EEGate>
     </div>
   )

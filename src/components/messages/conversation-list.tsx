@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { getInitials, formatRelativeTime } from '@/lib/utils'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface ConversationItem {
   otherUserId: string
   name: string
+  avatarUrl?: string | null
   lastMessageAt: string
 }
 
@@ -22,6 +23,7 @@ export function ConversationList({ conversations, basePath }: { conversations: C
           className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
         >
           <Avatar className="h-9 w-9 shrink-0">
+            {c.avatarUrl && <AvatarImage src={c.avatarUrl} alt={c.name} />}
             <AvatarFallback className="text-xs">{getInitials(c.name)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">

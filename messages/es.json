@@ -907,6 +907,17 @@
     "cardDescription": "Activa las herramientas de misionero: perfil público, proyectos, publicaciones, socios y recepción de contribuciones.",
     "cta": "Convertirme en misionero"
   },
+  "Achievements": {
+    "prayerAnswered": "¡Tu oración por {name} fue respondida! 🙏",
+    "prayerPointCompleted": "Punto de oración completado: \"{title}\" en {highlightTitle}",
+    "projectCompleted": "¡El proyecto \"{title}\" fue completado! 🎉",
+    "pledgeConfirmed": "Tu donación de {amount} para {highlightTitle} fue confirmada"
+  },
+  "Messages": {
+    "searchPlaceholder": "Buscar para iniciar una conversación...",
+    "noMatches": "Nadie encontrado con ese nombre.",
+    "viewProfile": "Ver perfil"
+  },
   "Superadmin": {
     "backToApp": "Volver a la app",
     "viewingAs": "Viendo como:",
@@ -980,6 +991,12 @@
   "PartnerFinance": {
     "myProjectsTitle": "Proyectos que apoyo",
     "noProjectsYet": "Todavía no eres socio de ningún proyecto. Sigue a un misionero y apoya un proyecto para verlo aquí.",
+    "quickPray": "Orar por este proyecto",
+    "quickContribute": "Contribuir con este proyecto",
+    "impactTotalGiven": "Total contribuido",
+    "impactProjectsSupported": "Proyectos que apoyas",
+    "impactEncouragement": "El evangelio está llegando al mundo gracias a tu contribución y tus oraciones. 🌍",
+    "projectsSummary": "Formas parte de {count, plural, one {# proyecto} other {# proyectos}}, {prayerCount, plural, one {# con pedido de oración} other {# con pedidos de oración}}",
     "pageTitle": "Mis donaciones",
     "taxExportTitle": "Comprobante para declaración de impuestos",
     "taxExportDisclaimer": "Exportación agregada de tus donaciones confirmadas — no reemplaza un recibo fiscal oficial.",
@@ -1007,6 +1024,7 @@
     "postsHeading": "Publicaciones",
     "projectsHeading": "Proyectos",
     "statsProjects": "{count, plural, one {proyecto} other {proyectos}}",
+    "statsProjectsSupported": "{count, plural, one {proyecto que apoyo} other {proyectos que apoyo}}",
     "statsAchievements": "{count, plural, one {logro} other {logros}}",
     "pixAvailable": "Pix disponible — solicita la clave al misionero",
     "privateProfileMessage": "Este perfil es privado. Contacta al misionero para solicitar acceso.",

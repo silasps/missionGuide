@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import { MyProjectsList } from '@/components/dashboard/partner/my-projects-list'
 import { BecomeMissionaryCard } from '@/components/dashboard/become-missionary-card'
+import { AchievementFeed } from '@/components/dashboard/partner/achievement-feed'
 import { getActiveProfile } from '@/lib/profile/active-profile'
 
 export default async function MyProjectsPage() {
@@ -30,11 +31,21 @@ export default async function MyProjectsPage() {
         .in('id', highlightIds)
     : { data: [] }
 
+  const prayerCount = (highlights ?? []).filter((h) => h.goal_type.includes('prayer')).length
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">{t('myProjectsTitle')}</h1>
+    <div className="max-w-xl mx-auto space-y-4">
+      <div>
+        <h1 className="text-lg font-semibold">{t('myProjectsTitle')}</h1>
+        {highlightIds.length > 0 && (
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {t('projectsSummary', { count: highlightIds.length, prayerCount })}
+          </p>
+        )}
+      </div>
+      <AchievementFeed userId={user.id} types={['prayer_answered', 'prayer_point_completed', 'project_completed']} />
       <MyProjectsList projects={highlights ?? []} />
-      {profile?.user_role === 'partner' && <BecomeMissionaryCard />}
+      {profile?.user_role === 'partner' && <BecomeMissionaryCard compact />}
     </div>
   )
 }

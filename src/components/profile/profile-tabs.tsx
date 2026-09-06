@@ -143,6 +143,7 @@ export function ProfileTabs({ username, hasTrajectory, isMissionary, canEdit, ow
               username={ownerProfile.username}
               displayName={ownerProfile.display_name}
               canEdit={canEdit}
+              isMissionary={isMissionary}
             />
           </div>
         )}

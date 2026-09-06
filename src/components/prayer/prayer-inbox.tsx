@@ -162,12 +162,12 @@ export function PrayerInbox({ requests: initial, myUserId }: { requests: PrayerR
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border rounded-lg p-1 bg-muted w-fit">
+      <div className="flex gap-1 border rounded-full p-1 bg-muted w-fit">
         {TABS.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-1 rounded text-sm transition-colors ${tab === t ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1 rounded-full text-sm transition-colors ${tab === t ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
           >
             {t}
           </button>

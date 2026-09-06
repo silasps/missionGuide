@@ -907,6 +907,17 @@
     "cardDescription": "Turn on missionary tools: public profile, projects, posts, partners and receiving contributions.",
     "cta": "Become a missionary"
   },
+  "Achievements": {
+    "prayerAnswered": "Your prayer for {name} was answered! 🙏",
+    "prayerPointCompleted": "Prayer point completed: \"{title}\" in {highlightTitle}",
+    "projectCompleted": "The project \"{title}\" was completed! 🎉",
+    "pledgeConfirmed": "Your gift of {amount} to {highlightTitle} was confirmed"
+  },
+  "Messages": {
+    "searchPlaceholder": "Search to start a conversation...",
+    "noMatches": "No one found with that name.",
+    "viewProfile": "View profile"
+  },
   "Superadmin": {
     "backToApp": "Back to app",
     "viewingAs": "Viewing as:",
@@ -980,6 +991,12 @@
   "PartnerFinance": {
     "myProjectsTitle": "Projects I support",
     "noProjectsYet": "You're not partnered in any project yet. Follow a missionary and support a project to see it here.",
+    "quickPray": "Pray for this project",
+    "quickContribute": "Contribute to this project",
+    "impactTotalGiven": "Total given",
+    "impactProjectsSupported": "Projects you support",
+    "impactEncouragement": "The gospel is going out into the world thanks to your giving and your prayers. 🌍",
+    "projectsSummary": "You're part of {count, plural, one {# project} other {# projects}}, {prayerCount, plural, one {# with a prayer request} other {# with prayer requests}}",
     "pageTitle": "My giving",
     "taxExportTitle": "Tax statement",
     "taxExportDisclaimer": "Aggregated export of your confirmed giving — not an official tax receipt.",
@@ -1007,6 +1024,7 @@
     "postsHeading": "Posts",
     "projectsHeading": "Projects",
     "statsProjects": "{count, plural, one {project} other {projects}}",
+    "statsProjectsSupported": "{count, plural, one {project supported} other {projects supported}}",
     "statsAchievements": "{count, plural, one {achievement} other {achievements}}",
     "pixAvailable": "Pix available — ask the missionary for the key",
     "privateProfileMessage": "This profile is private. Contact the missionary to request access.",

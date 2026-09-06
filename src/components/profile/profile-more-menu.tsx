@@ -21,6 +21,7 @@ interface Props {
   username: string
   displayName: string
   canEdit: boolean
+  isMissionary: boolean
 }
 
 // Menu "..." do perfil público, estilo Instagram — substitui o seletor de
@@ -28,7 +29,7 @@ interface Props {
 // compartilhar/denunciar que antes ficavam soltas no rodapé do ProfileCTA
 // (a pedido do usuário). "Denunciar" só existe para quem não é dono do
 // perfil — não faz sentido denunciar a própria conta.
-export function ProfileMoreMenu({ profileId, username, displayName, canEdit }: Props) {
+export function ProfileMoreMenu({ profileId, username, displayName, canEdit, isMissionary }: Props) {
   const t = useTranslations('PublicProfile')
   const tReport = useTranslations('Report')
   const [reportOpen, setReportOpen] = useState(false)
@@ -79,11 +80,13 @@ export function ProfileMoreMenu({ profileId, username, displayName, canEdit }: P
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleShare} className="gap-2">
-            <Share2 className="h-4 w-4" />
-            {t('shareProfile')}
-          </DropdownMenuItem>
-          {canEdit && (
+          {isMissionary && (
+            <DropdownMenuItem onClick={handleShare} className="gap-2">
+              <Share2 className="h-4 w-4" />
+              {t('shareProfile')}
+            </DropdownMenuItem>
+          )}
+          {canEdit && isMissionary && (
             <DropdownMenuItem onClick={handleCopyShortLink} disabled={generatingShortLink} className="gap-2">
               <Link2 className="h-4 w-4" />
               {t('copyShortLink')}

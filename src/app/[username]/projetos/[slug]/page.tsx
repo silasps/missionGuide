@@ -51,6 +51,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https')
 
 interface Props {
   params: Promise<{ username: string; slug: string }>
+  searchParams: Promise<{ tab?: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -119,8 +120,9 @@ const SUPPORT_TYPES = [
   },
 ]
 
-export default async function ProjetoPublicoPage({ params }: Props) {
+export default async function ProjetoPublicoPage({ params, searchParams }: Props) {
   const { username, slug } = await params
+  const { tab: initialTab } = await searchParams
   const profile = await getProfileOrRedirect(username, `/projetos/${slug}`)
 
   if (!profile) notFound()
@@ -528,6 +530,7 @@ export default async function ProjetoPublicoPage({ params }: Props) {
                 prayerLabel="🙏 Apoio de oração"
                 financialContent={financialBlock}
                 prayerContent={prayerBlock}
+                defaultTab={initialTab === 'prayer' ? 'prayer' : 'financial'}
               />
             )
           }

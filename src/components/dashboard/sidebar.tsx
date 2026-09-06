@@ -159,11 +159,13 @@ function BottomNavLink({ href, label, Icon, active }: { href: string; label: str
     <Link
       href={href}
       className={cn(
-        'flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors',
+        'flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors outline-none',
         active ? 'text-primary' : 'text-muted-foreground'
       )}
     >
-      <Icon className={cn('h-5 w-5 shrink-0', active && 'fill-primary/10')} />
+      <span className={cn('flex items-center justify-center h-8 w-11 rounded-full transition-colors', active && 'bg-primary/10')}>
+        <Icon className={cn('h-5 w-5 shrink-0', active && 'fill-primary/10')} />
+      </span>
       <span className="text-center leading-tight line-clamp-2 px-0.5 min-h-[2.2em]">{label}</span>
     </Link>
   )

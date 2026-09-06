@@ -14,6 +14,7 @@ import { PostComposerProvider } from '@/components/dashboard/post-composer-provi
 import { ProjectComposerProvider } from '@/components/highlights/project-composer/project-composer-provider'
 import { EmailVerificationBanner } from '@/components/dashboard/email-verification-banner'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { LanguageSwitcher } from '@/components/marketing/language-switcher'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -53,20 +54,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <DashboardSidebar profile={effectiveProfile} accessibleProfiles={accessibleProfiles} />
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <header className="h-14 md:h-12 border-b grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-6 shrink-0">
-            <HeaderSearch />
-            <MobileHeader />
-            <div className="flex items-center gap-1 justify-self-end">
-              <Link
-                href="/dashboard/buscar"
-                aria-label={t('search')}
-                title={t('search')}
-                className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors md:hidden"
-              >
-                <Search className="h-4 w-4" />
-              </Link>
-              <ThemeToggle />
-              <NotificationsBell userId={user.id} />
+          <header className="h-14 md:h-12 border-b shrink-0 px-4 md:px-6">
+            <div className="h-full max-w-xl mx-auto grid grid-cols-[1fr_auto_1fr_auto] items-center gap-x-3">
+              <HeaderSearch />
+              <MobileHeader />
+              <div className="flex items-center gap-1 justify-self-end">
+                <Link
+                  href="/dashboard/buscar"
+                  aria-label={t('search')}
+                  title={t('search')}
+                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors md:hidden"
+                >
+                  <Search className="h-4 w-4" />
+                </Link>
+                <ThemeToggle />
+                <NotificationsBell userId={user.id} />
+              </div>
+              <LanguageSwitcher compact className="h-8 px-1.5 justify-self-end" />
             </div>
           </header>
 

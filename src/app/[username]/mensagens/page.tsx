@@ -25,7 +25,14 @@ export default async function PartnerMensagensPage({ params }: Props) {
       <div className="max-w-lg mx-auto space-y-4">
         <h1 className="text-xl font-semibold">Conversa com {profile.display_name}</h1>
         <E2EEGate userId={user.id}>
-          <MessageThread profileId={profile.id} myUserId={user.id} otherUserId={profile.user_id} otherName={profile.display_name} />
+          <MessageThread
+            profileId={profile.id}
+            myUserId={user.id}
+            otherUserId={profile.user_id}
+            otherName={profile.display_name}
+            otherUsername={username}
+            otherAvatarUrl={profile.avatar_url}
+          />
         </E2EEGate>
         <p className="text-center">
           <Link href="/conta/excluir" className="text-xs text-muted-foreground hover:underline">Excluir minha conta e dados</Link>

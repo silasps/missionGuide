@@ -41,6 +41,8 @@ export type NotificationType =
   | 'new_comment'
   | 'partner_lapsed'
   | 'scheduled_pledge_reminder'
+  | 'prayer_point_completed'
+  | 'project_completed'
 
 export type BudgetCategoryType =
   | 'airfare' | 'bus' | 'boat' | 'ferry' | 'rideshare' | 'lodging'

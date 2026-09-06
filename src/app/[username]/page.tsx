@@ -94,11 +94,22 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   // deixa o header pronto sem esperar as listas inteiras (que agora
   // streamam depois, ver ProjectsSectionAsync/PublicationsFeedAsync abaixo).
   const supabase = await createClient()
-  const [{ count: projectsCount }, { count: completedCount }, { count: postsCount }, followCounts, visitorLocale] =
+  const isMissionaryProfile = profile.user_role === 'missionary'
+  const [{ count: projectsCount }, { count: completedCount }, { count: postsCount }, projectsSupportedCount, followCounts, visitorLocale] =
     await Promise.all([
-      supabase.from('highlights').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('status', 'active').is('archived_at', null),
-      supabase.from('highlights').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('status', 'completed').is('archived_at', null),
-      supabase.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('is_draft', false).neq('moderation_status', 'removed'),
+      isMissionaryProfile
+        ? supabase.from('highlights').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('status', 'active').is('archived_at', null)
+        : Promise.resolve({ count: 0 }),
+      isMissionaryProfile
+        ? supabase.from('highlights').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('status', 'completed').is('archived_at', null)
+        : Promise.resolve({ count: 0 }),
+      isMissionaryProfile
+        ? supabase.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).eq('is_draft', false).neq('moderation_status', 'removed')
+        : Promise.resolve({ count: 0 }),
+      // Parceiro não tem posts/projetos/conquistas próprios — a estatística
+      // relevante pra ele é quantos projetos apoia (feedback direto: o
+      // perfil de parceiro estava só copiando o layout do missionário).
+      isMissionaryProfile ? Promise.resolve(0) : getSupportedProjectsCount(supabase, profile.user_id),
       profile.user_role === 'missionary' ? getFollowCounts(profile.id) : Promise.resolve(null),
       getLocale() as Promise<Locale>,
     ])
@@ -112,6 +123,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           postsCount={postsCount ?? 0}
           projectsCount={projectsCount ?? 0}
           achievementsCount={completedCount ?? 0}
+          projectsSupportedCount={projectsSupportedCount}
           followersCount={followCounts?.followers}
           followingCount={followCounts?.following}
         />
@@ -139,6 +151,17 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       </div>
     </div>
   )
+}
+
+async function getSupportedProjectsCount(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const [{ data: pledged }, { data: recurring }] = await Promise.all([
+    supabase.from('pledges').select('highlight_id').eq('reporter_user_id', userId).eq('status', 'confirmed').not('highlight_id', 'is', null),
+    supabase.from('recurring_pledges').select('highlight_id').eq('reporter_user_id', userId).eq('status', 'active').not('highlight_id', 'is', null),
+  ])
+  return new Set([
+    ...(pledged ?? []).map((p) => p.highlight_id as string),
+    ...(recurring ?? []).map((r) => r.highlight_id as string),
+  ]).size
 }
 
 async function ProjectsSectionAsync({ profileId, username, accentColor, visitorLocale }: { profileId: string; username: string; accentColor: string; visitorLocale: Locale }) {

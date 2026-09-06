@@ -34,6 +34,8 @@ const AREA_BY_TYPE: Record<string, NotificationArea> = {
   new_comment: 'comments',
   new_post: 'content',
   highlight_update: 'content',
+  prayer_point_completed: 'prayers',
+  project_completed: 'content',
 }
 
 const AREA_HREF: Record<NotificationArea, string> = {
@@ -41,8 +43,8 @@ const AREA_HREF: Record<NotificationArea, string> = {
   prayers: '/dashboard/oracoes',
   partners: '/dashboard/parceiros',
   financial: '/dashboard/financeiro/lancamentos',
-  comments: '/dashboard/feed',
-  content: '/dashboard/feed',
+  comments: '/dashboard',
+  content: '/dashboard',
 }
 
 const AREA_ICON: Record<NotificationArea, React.ComponentType<{ className?: string }>> = {
@@ -99,6 +101,10 @@ function groupByArea(notifications: { id: string; type: string; created_at: stri
 function hrefForGroup(g: AreaGroup): string {
   if (g.area === 'comments' && typeof g.latestPayload.username === 'string' && typeof g.latestPayload.post_id === 'string') {
     return `/${g.latestPayload.username}?post=${g.latestPayload.post_id}&comments=1`
+  }
+  if ((g.latestType === 'project_completed' || g.latestType === 'prayer_point_completed')
+    && typeof g.latestPayload.username === 'string' && typeof g.latestPayload.slug === 'string') {
+    return `/${g.latestPayload.username}/projetos/${g.latestPayload.slug}`
   }
   if (g.latestType === 'new_pledge') return '/dashboard/financeiro/conciliacao'
   if (g.latestType === 'pledge_confirmed' || g.latestType === 'pledge_rejected') return '/dashboard/financeiro-parceiro'

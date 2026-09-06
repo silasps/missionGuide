@@ -68,11 +68,11 @@ export default async function SeguidoresPage({ params, searchParams }: Props) {
           <h1 className="text-xl font-semibold">{profile.display_name}</h1>
         </div>
 
-        <div className="flex rounded-lg border p-1 bg-muted/40">
+        <div className="flex rounded-full border p-1 bg-muted/40">
           <Link
             href={base}
             className={cn(
-              'flex-1 text-center rounded-md py-2 text-sm font-medium transition-colors',
+              'flex-1 text-center rounded-full py-2 text-sm font-medium transition-colors',
               kind === 'followers' ? 'bg-background shadow-sm' : 'text-muted-foreground'
             )}
           >
@@ -81,7 +81,7 @@ export default async function SeguidoresPage({ params, searchParams }: Props) {
           <Link
             href={`${base}?tab=seguindo`}
             className={cn(
-              'flex-1 text-center rounded-md py-2 text-sm font-medium transition-colors',
+              'flex-1 text-center rounded-full py-2 text-sm font-medium transition-colors',
               kind === 'following' ? 'bg-background shadow-sm' : 'text-muted-foreground'
             )}
           >
