@@ -20,7 +20,7 @@ export function SupportSectionTabs({ financialLabel, prayerLabel, financialConte
 
   return (
     <div className="space-y-4">
-      <div className="inline-flex rounded-full bg-muted p-1 gap-1">
+      <div className="flex w-full rounded-full bg-muted p-1 gap-1">
         {([
           { key: 'financial', label: financialLabel },
           { key: 'prayer', label: prayerLabel },
@@ -30,7 +30,7 @@ export function SupportSectionTabs({ financialLabel, prayerLabel, financialConte
             type="button"
             onClick={() => setTab(key)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-sm transition-colors',
+              'flex-1 px-3 py-1.5 rounded-full text-sm text-center transition-colors',
               tab === key ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'
             )}
           >

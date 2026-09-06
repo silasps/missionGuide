@@ -2,16 +2,13 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import { MyProjectsList } from '@/components/dashboard/partner/my-projects-list'
-import { BecomeMissionaryCard } from '@/components/dashboard/become-missionary-card'
 import { AchievementFeed } from '@/components/dashboard/partner/achievement-feed'
-import { getActiveProfile } from '@/lib/profile/active-profile'
 
 export default async function MyProjectsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const profile = await getActiveProfile()
   const t = await getTranslations('PartnerFinance')
 
   const [{ data: pledged }, { data: recurring }] = await Promise.all([
@@ -45,7 +42,6 @@ export default async function MyProjectsPage() {
       </div>
       <AchievementFeed userId={user.id} types={['prayer_answered', 'prayer_point_completed', 'project_completed']} />
       <MyProjectsList projects={highlights ?? []} />
-      {profile?.user_role === 'partner' && <BecomeMissionaryCard compact />}
     </div>
   )
 }
