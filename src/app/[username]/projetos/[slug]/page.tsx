@@ -62,12 +62,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!profile) return { title: 'Projeto não encontrado' }
 
-  const { data: project } = await supabase
-    .from('highlights')
-    .select('title, description, cover_url')
-    .eq('profile_id', profile.id)
-    .eq('slug', slug)
-    .single()
+  // Projeto sem slug próprio usa o id como slug na URL (ver isUUID mais
+  // abaixo, na página de verdade) — sem esse mesmo fallback aqui, o link
+  // compartilhado (WhatsApp etc.) não achava o projeto (`.eq('slug', slug)`
+  // não bate quando `slug` é na real o id e a coluna slug tá `null`),
+  // caindo em "Projeto não encontrado" e perdendo a prévia (imagem/título)
+  // pra do app genérico — bug reportado pelo usuário testando o link real.
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+  const { data: project } = await (isUUID
+    ? supabase.from('highlights').select('title, description, cover_url').eq('profile_id', profile.id).or(`slug.eq.${slug},id.eq.${slug}`)
+    : supabase.from('highlights').select('title, description, cover_url').eq('profile_id', profile.id).eq('slug', slug)
+  ).single()
 
   if (!project) return { title: 'Projeto não encontrado' }
 
