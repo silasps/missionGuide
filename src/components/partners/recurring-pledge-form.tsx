@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { usePendingAction } from '@/hooks/use-pending-action'
@@ -14,7 +15,7 @@ import { CheckoutHeader } from './checkout-header'
 import { NeedsAccountCard } from './needs-account-card'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle } from 'lucide-react'
-import { toMasked, fromMasked, CURRENCIES } from '@/lib/currency-mask'
+import { toMasked, fromMasked, CURRENCIES, MIN_STRIPE_AMOUNT } from '@/lib/currency-mask'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentMethodInstructions } from './payment-method-instructions'
 import { BudgetCategorySelect, type BudgetCategoryOption } from './budget-category-select'
@@ -54,7 +55,15 @@ interface Props {
 export function RecurringPledgeForm({ profileId, username, missionaryName, currency: projectCurrency, paymentOptions, stripeAvailable, heroImageUrl = null, heroImagePosition, backHref, user, highlightId, budgetCategories, initialCategoryId }: Props) {
   const t = useTranslations('RecurringPledge')
   const tPledge = useTranslations('PledgeForm')
-  const [done, setDone] = useState(false)
+  const searchParams = useSearchParams()
+  // Volta do Stripe Checkout é reload completo (window.location.href em
+  // handleStripeCheckout), então nenhum state local sobrevive — só o
+  // `stripe=success` do success_url (checkout-recurring/route.ts) revela
+  // que o pagamento terminou. Sem isso, essa tela reaparecia em branco
+  // depois de pagar (reportado pelo usuário testando).
+  const [doneViaStripe] = useState(() => searchParams.get('stripe') === 'success')
+  const [done, setDone] = useState(doneViaStripe)
+  const [redirectSeconds, setRedirectSeconds] = useState(50)
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId ?? null)
   const [optionId, setOptionId] = useState(stripeAvailable ? 'stripe' : (paymentOptions[0]?.id ?? 'other'))
@@ -73,6 +82,21 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
   useEffect(() => {
     if (done) doneRef.current?.scrollIntoView({ block: 'start' })
   }, [done])
+
+  // Redireciona pro perfil do missionário 20s depois de concluir — mesmo
+  // padrão do PledgeForm (avulso). window.location.href, não router.push:
+  // esta tela às vezes está dentro do modal de "Seja Parceiro"
+  // (PartnershipModal, intercepting route) — navegação client-side não
+  // fecha o modal, o reload completo garante que não fica sobreposto.
+  useEffect(() => {
+    if (!done) return
+    if (redirectSeconds <= 0) {
+      window.location.href = `/${username}`
+      return
+    }
+    const timer = setTimeout(() => setRedirectSeconds((s) => s - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [done, redirectSeconds, username])
 
   // Igual ao PledgeForm (avulso): checkout-recurring/route.ts já monta a
   // subscription com price_data dinâmico, então Cartão aceita qualquer
@@ -143,6 +167,7 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
               <h2 className="text-xl font-semibold">{t('doneTitle')}</h2>
               <p className="text-muted-foreground text-sm">{t('doneDescription', { name: missionaryName })}</p>
+              <p className="text-xs text-muted-foreground">{tPledge('redirectingIn', { seconds: redirectSeconds })}</p>
             </CardContent>
           </Card>
           <Button type="button" variant="outline" className="w-full" onClick={() => { window.location.href = `/${username}` }}>
@@ -156,6 +181,9 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
   function handleStripeCheckout() {
     const parsedAmount = parseFloat(fromMasked(amount, selectedCurrency))
     if (!parsedAmount || parsedAmount <= 0) { toast.error(t('errorAmount')); amountInputRef.current?.focus(); return }
+    // Só vale pra cartão (Stripe cobra taxa fixa por transação) — Pix e
+    // outros métodos manuais não têm mínimo (pedido direto do usuário).
+    if (parsedAmount < MIN_STRIPE_AMOUNT) { toast.error(t('errorMinimumStripe', { amount: formatCurrency(MIN_STRIPE_AMOUNT, selectedCurrency) })); amountInputRef.current?.focus(); return }
     runCheckout(true, async () => {
       const res = await fetch('/api/stripe/checkout-recurring', {
         method: 'POST',

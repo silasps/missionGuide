@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Loader2 } from 'lucide-react'
 import { PledgeForm } from './pledge-form'
 import { RecurringPledgeForm } from './recurring-pledge-form'
 import { ScheduledPledgeForm } from './scheduled-pledge-form'
@@ -62,12 +64,22 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
   // usuário realmente veio (bug reportado pelo usuário).
   const choice = (searchParams.get('choice') as Choice | null) ?? initialChoice ?? null
 
+  // Trocar de escolha muda `searchParams`, o que faz o Server Component da
+  // página rebuscar dados (novo highlight/categorias) — não é só um estado
+  // local, então demora de verdade. Sem isso o clique parecia travado (nada
+  // se mexia na tela por alguns segundos, reportado pelo usuário testando).
+  const [isPending, startTransition] = useTransition()
+  const [pendingChoice, setPendingChoice] = useState<Choice | null>(null)
+
   function goTo(next: Choice | null) {
+    setPendingChoice(next)
     const params = new URLSearchParams(searchParams.toString())
     if (next) params.set('choice', next)
     else params.delete('choice')
     const query = params.toString()
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    startTransition(() => {
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    })
   }
 
   // Destino de segurança só usado quando não há histórico de navegação real
@@ -165,10 +177,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       {hasFinancialOptions && highlightId && (
         <button
           type="button"
+          disabled={isPending}
           onClick={() => goTo('financial_once')}
-          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
         >
-          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">💰</span>
+          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">
+            {pendingChoice === 'financial_once' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '💰'}
+          </span>
           <div>
             <p className="font-medium text-sm">Apoiar {highlightTitle ?? 'este projeto'}</p>
             <p className="text-xs text-muted-foreground">Uma oferta pontual para esta campanha específica</p>
@@ -178,10 +193,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       {hasFinancialOptions && (
         <button
           type="button"
+          disabled={isPending}
           onClick={() => goTo('financial_once_general')}
-          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
         >
-          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">🎁</span>
+          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">
+            {pendingChoice === 'financial_once_general' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🎁'}
+          </span>
           <div>
             <p className="font-medium text-sm">Fazer uma doação única</p>
             <p className="text-xs text-muted-foreground">Uma contribuição pontual, sem compromisso de continuidade</p>
@@ -191,10 +209,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       {hasFinancialOptions && (
         <button
           type="button"
+          disabled={isPending}
           onClick={() => goTo('financial_ongoing')}
-          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
         >
-          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">🔄</span>
+          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">
+            {pendingChoice === 'financial_ongoing' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🔄'}
+          </span>
           <div>
             <p className="font-medium text-sm">Ser parceiro fixo da missão</p>
             <p className="text-xs text-muted-foreground">
@@ -207,10 +228,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       {hasFinancialOptions && (
         <button
           type="button"
+          disabled={isPending}
           onClick={() => goTo('financial_scheduled')}
-          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
         >
-          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">📅</span>
+          <span className="text-2xl shrink-0 h-10 w-10 rounded-full bg-support/10 flex items-center justify-center">
+            {pendingChoice === 'financial_scheduled' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '📅'}
+          </span>
           <div>
             <p className="font-medium text-sm">{t('scheduledTitle')}</p>
             <p className="text-xs text-muted-foreground">{t('scheduledSubtitle')}</p>
@@ -219,10 +243,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       )}
       <button
         type="button"
+        disabled={isPending}
         onClick={() => goTo('prayer')}
-        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
       >
-        <span className="text-2xl shrink-0">🙏</span>
+        <span className="text-2xl shrink-0 h-10 w-10 flex items-center justify-center">
+          {pendingChoice === 'prayer' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🙏'}
+        </span>
         <div>
           <p className="font-medium text-sm">Comprometer-me em oração</p>
           <p className="text-xs text-muted-foreground">Orar regularmente por esta missão</p>
@@ -230,10 +257,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       </button>
       <button
         type="button"
+        disabled={isPending}
         onClick={() => goTo('ambassador')}
-        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
       >
-        <span className="text-2xl shrink-0">📣</span>
+        <span className="text-2xl shrink-0 h-10 w-10 flex items-center justify-center">
+          {pendingChoice === 'ambassador' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '📣'}
+        </span>
         <div>
           <p className="font-medium text-sm">Divulgar e trazer apoiadores</p>
           <p className="text-xs text-muted-foreground">Compartilhar com sua rede e ajudar a missão a crescer</p>
@@ -241,10 +271,13 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
       </button>
       <button
         type="button"
+        disabled={isPending}
         onClick={() => goTo('volunteer')}
-        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-60"
       >
-        <span className="text-2xl shrink-0">🤝</span>
+        <span className="text-2xl shrink-0 h-10 w-10 flex items-center justify-center">
+          {pendingChoice === 'volunteer' && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🤝'}
+        </span>
         <div>
           <p className="font-medium text-sm">Oferecer apoio pessoal</p>
           <p className="text-xs text-muted-foreground">Voluntariado, habilidades ou outro tipo de ajuda</p>

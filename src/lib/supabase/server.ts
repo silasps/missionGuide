@@ -1,5 +1,20 @@
+import { cache } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+
+// auth.getUser() sempre faz um round-trip de rede de verdade (verifica o
+// token contra o servidor da Supabase, ao contrário de getSession() que só
+// decodifica o JWT local) — várias telas/layouts na mesma navegação chamavam
+// isso direto e de forma independente (dashboard/layout.tsx,
+// financeiro/layout.tsx, a própria page.tsx...), pagando esse custo várias
+// vezes na mesma request. cache() do React memoiza por request: a partir da
+// primeira chamada, as próximas reaproveitam o mesmo resultado sem round-trip
+// novo. Motivado por lentidão real reportada ao trocar de aba no Financeiro.
+export const getCachedUser = cache(async () => {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+})
 
 export async function createClient() {
   const cookieStore = await cookies()

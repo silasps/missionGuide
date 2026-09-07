@@ -3,36 +3,37 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { usePendingAction } from '@/hooks/use-pending-action'
 import { PaymentMethod, FinancialAccount } from '@/types/database'
-import { STRIPE_CONNECT_COUNTRIES } from '@/lib/stripe/connect-countries'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Loader2, ShieldCheck, Zap } from 'lucide-react'
+import { Loader2, Zap } from 'lucide-react'
 
 interface Props {
+  // Só é montado (ver PaymentMethodsList) quando a conexão já existe —
+  // conectar do zero mora em PaymentMethodForm/showStripeOption. Continua
+  // aceitando null só pra não quebrar o tipo em outros pontos de chamada.
   stripeMethod: PaymentMethod | null
   financialAccounts: FinancialAccount[]
 }
 
 export function StripeConnectCard({ stripeMethod, financialAccounts }: Props) {
   const t = useTranslations('PaymentMethods')
-  const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [country, setCountry] = useState('')
   const { isPending: disconnecting, run: runDisconnect } = usePendingAction()
   const { isPending: savingAccount, run: runSaveAccount } = usePendingAction()
+  // Otimista, não amarrado a stripeMethod.linked_account_id (prop do
+  // servidor) — sem isso o <select> ficava "preso" na opção antiga até o
+  // router.refresh() completar, dando sensação de travamento ao trocar de
+  // conta (reportado pelo usuário testando em produção).
+  const [linkedAccountId, setLinkedAccountId] = useState(stripeMethod?.linked_account_id ?? '')
 
   const pending = stripeMethod !== null && !stripeMethod.is_active
-
-  const countryOptions = STRIPE_CONNECT_COUNTRIES
-    .map(code => ({ code, name: new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code }))
-    .sort((a, b) => a.name.localeCompare(b.name, locale))
 
   useEffect(() => {
     const status = searchParams.get('stripe')
@@ -53,10 +54,12 @@ export function StripeConnectCard({ stripeMethod, financialAccounts }: Props) {
 
   function handleLinkedAccountChange(accountId: string) {
     if (!stripeMethod) return
+    const previous = linkedAccountId
+    setLinkedAccountId(accountId)
     runSaveAccount(true, async () => {
       const supabase = createClient()
       const { error } = await supabase.from('payment_methods').update({ linked_account_id: accountId }).eq('id', stripeMethod.id)
-      if (error) { toast.error(t('errorSave')); return }
+      if (error) { toast.error(t('errorSave')); setLinkedAccountId(previous); return }
       router.refresh()
     })
   }
@@ -87,32 +90,40 @@ export function StripeConnectCard({ stripeMethod, financialAccounts }: Props) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Zap className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <div>
-              <p className="font-medium text-sm">{t('stripeTitle')}</p>
-              <p className="text-xs text-muted-foreground">{t('stripeDescription')}</p>
-            </div>
+            <p className="font-medium text-sm">{t('stripeTitle')}</p>
           </div>
-          {stripeMethod && (
-            <Badge variant={pending ? 'outline' : 'secondary'}>
-              {pending ? t('stripePending') : t('stripeConnected')}
-            </Badge>
-          )}
+          <Badge variant={pending ? 'outline' : 'secondary'}>
+            {pending ? t('stripePending') : t('stripeConnected')}
+          </Badge>
         </div>
 
-        {stripeMethod && !pending ? (
+        {pending ? (
+          <>
+            <p className="text-xs text-muted-foreground">{t('stripePendingHint')}</p>
+            <a href="/api/stripe/connect/start">
+              <Button size="sm" className="gap-2">
+                <Zap className="h-4 w-4" />
+                {t('stripeContinueOnboarding')}
+              </Button>
+            </a>
+          </>
+        ) : (
           <>
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground">{t('stripeLinkedAccountLabel')}</label>
               {financialAccounts.length > 0 ? (
                 <>
-                  <select
-                    value={stripeMethod.linked_account_id ?? ''}
-                    onChange={(e) => handleLinkedAccountChange(e.target.value)}
-                    disabled={savingAccount}
-                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
-                  >
-                    {financialAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={linkedAccountId}
+                      onChange={(e) => handleLinkedAccountChange(e.target.value)}
+                      disabled={savingAccount}
+                      className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 pr-8 text-sm outline-none focus-visible:border-ring"
+                    >
+                      {financialAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                    {savingAccount && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                  </div>
                   <p className="text-xs text-muted-foreground">{t('stripeLinkedAccountHint')}</p>
                 </>
               ) : (
@@ -128,36 +139,6 @@ export function StripeConnectCard({ stripeMethod, financialAccounts }: Props) {
               {disconnecting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               {t('stripeDisconnect')}
             </Button>
-          </>
-        ) : (
-          <>
-            {pending && <p className="text-xs text-muted-foreground">{t('stripePendingHint')}</p>}
-            {!pending && (
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">{t('stripeCountryLabel')}</label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
-                >
-                  <option value="">{t('stripeCountryPlaceholder')}</option>
-                  {countryOptions.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            {!pending && (
-              <p className="text-xs text-muted-foreground">{t('stripeConnectSteps')}</p>
-            )}
-            <a href={pending ? '/api/stripe/connect/start' : (country ? `/api/stripe/connect/start?country=${country}` : undefined)}>
-              <Button size="sm" className="gap-2" disabled={!pending && !country}>
-                <Zap className="h-4 w-4" />
-                {pending ? t('stripeContinueOnboarding') : t('stripeConnect')}
-              </Button>
-            </a>
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              {t('stripeSecurityNote')}
-            </p>
           </>
         )}
       </CardContent>

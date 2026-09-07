@@ -16,7 +16,7 @@ import { CheckoutHeader } from './checkout-header'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle, Upload } from 'lucide-react'
 import { PledgePaymentMethod } from '@/types/database'
-import { toMasked, fromMasked, CURRENCIES } from '@/lib/currency-mask'
+import { toMasked, fromMasked, CURRENCIES, MIN_STRIPE_AMOUNT } from '@/lib/currency-mask'
 import { PaymentMethodInstructions } from './payment-method-instructions'
 import { BudgetCategorySelect, type BudgetCategoryOption } from './budget-category-select'
 import { AmountChips, type RemainingOption } from './amount-chips'
@@ -62,7 +62,7 @@ export function PledgeForm({ profileId, username, missionaryName, highlightId, h
   const [doneViaStripe] = useState(() => searchParams.get('stripe') === 'success')
   const [done, setDone] = useState(doneViaStripe)
   const [doneAsLoggedIn, setDoneAsLoggedIn] = useState(false)
-  const [redirectSeconds, setRedirectSeconds] = useState(20)
+  const [redirectSeconds, setRedirectSeconds] = useState(50)
   const doneRef = useRef<HTMLDivElement>(null)
   const [saving, setSaving] = useState(false)
   const { isPending: startingCheckout, run: runCheckout } = usePendingAction()
@@ -200,6 +200,11 @@ export function PledgeForm({ profileId, username, missionaryName, highlightId, h
   function handleStripeCheckout() {
     const parsedAmount = parseFloat(fromMasked(amount, currency))
     if (!parsedAmount || parsedAmount <= 0) { toast.error(t('errorAmount')); amountInputRef.current?.focus(); return }
+    // Taxa da Stripe tem parte fixa (~R$0,39 no Brasil) — abaixo desse
+    // mínimo ela come uma fatia grande demais da doação. Só vale pra
+    // cartão: Pix/outros métodos manuais não passam pela Stripe, sem essa
+    // taxa (pedido direto do usuário).
+    if (parsedAmount < MIN_STRIPE_AMOUNT) { toast.error(t('errorMinimumStripe', { amount: formatCurrency(MIN_STRIPE_AMOUNT, currency) })); amountInputRef.current?.focus(); return }
     if (!isAnonymous && !name.trim()) { toast.error(t('errorName')); return }
     runCheckout(true, async () => {
       const res = await fetch('/api/stripe/checkout-once', {

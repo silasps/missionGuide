@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { usePendingAction } from '@/hooks/use-pending-action'
 import { PaymentMethod, PaymentMethodType, FinancialAccount } from '@/types/database'
-import { MANUAL_PAYMENT_METHOD_CATALOG, PAYMENT_METHOD_GROUPS, getPaymentMethodEntry } from '@/lib/payment-methods/catalog'
+import { MANUAL_PAYMENT_METHOD_CATALOG, PAYMENT_METHOD_CATALOG, PAYMENT_METHOD_GROUPS, getPaymentMethodEntry } from '@/lib/payment-methods/catalog'
 import { formatBankDetails, parseBankDetails } from '@/lib/payment-methods/bank-details'
 import { CURRENCIES } from '@/lib/currency-mask'
+import { STRIPE_CONNECT_COUNTRIES } from '@/lib/stripe/connect-countries'
 import { AccountWizard } from '@/components/financial/account-wizard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, ShieldCheck, Zap } from 'lucide-react'
 
 const GROUPS_IN_FORM = PAYMENT_METHOD_GROUPS.filter(g => g !== 'automatic')
 
@@ -25,11 +26,21 @@ interface Props {
   method?: PaymentMethod
   nextSortOrder?: number
   financialAccounts: FinancialAccount[]
+  /** Só true na criação (nunca editando) e só quando ainda não existe
+   *  payment_methods de type='stripe' — Stripe é OAuth, não passa pelo
+   *  insert genérico deste form, então some do <select> assim que a conexão
+   *  começar (StripeConnectCard assume a partir daí). */
+  showStripeOption?: boolean
 }
 
-export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financialAccounts }: Props) {
+export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financialAccounts, showStripeOption = false }: Props) {
   const t = useTranslations('PaymentMethods')
+  const locale = useLocale()
   const router = useRouter()
+  const [stripeCountry, setStripeCountry] = useState('')
+  const stripeCountryOptions = STRIPE_CONNECT_COUNTRIES
+    .map(code => ({ code, name: new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code }))
+    .sort((a, b) => a.name.localeCompare(b.name, locale))
   const [open, setOpen] = useState(false)
   const { isPending: saving, run } = usePendingAction()
   const [type, setType] = useState<PaymentMethodType>(method?.type ?? 'pix')
@@ -50,9 +61,12 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
   const isOther = type === 'other'
   const isBank = type === 'bank_transfer'
   const isPix = type === 'pix'
+  const isStripe = type === 'stripe'
   // Pix é exclusivo do Brasil (catalog entry com currency: 'BRL') — some do seletor
   // de tipo assim que uma moeda diferente é escolhida.
-  const methodsForCurrency = MANUAL_PAYMENT_METHOD_CATALOG.filter(e => !e.currency || e.currency === currency)
+  const catalogSource = showStripeOption ? PAYMENT_METHOD_CATALOG : MANUAL_PAYMENT_METHOD_CATALOG
+  const methodsForCurrency = catalogSource.filter(e => !e.currency || e.currency === currency)
+  const visibleGroups = showStripeOption ? PAYMENT_METHOD_GROUPS : GROUPS_IN_FORM
 
   function handleCurrencyChange(nextCurrency: string) {
     setCurrency(nextCurrency)
@@ -90,6 +104,7 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (isStripe) return // Stripe conecta via redirect (link abaixo), nunca por este submit.
     if (!value.trim()) { toast.error(t('errorValueRequired')); return }
     if ((isOther || isBank || isPix) && !label.trim()) { toast.error(t('errorLabelRequired')); return }
     if (isPix && !linkedAccountId) { toast.error(t('errorLinkedAccountRequired')); return }
@@ -137,16 +152,18 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
           <DialogTitle>{method ? t('editTitle') : t('newTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t('currencyLabel')}</Label>
-            <select
-              value={currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
-            >
-              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
+          {!isStripe && (
+            <div className="space-y-2">
+              <Label>{t('currencyLabel')}</Label>
+              <select
+                value={currency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
+              >
+                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>{t('typeLabel')}</Label>
             <select
@@ -154,7 +171,7 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
               onChange={(e) => setType(e.target.value as PaymentMethodType)}
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
             >
-              {GROUPS_IN_FORM.map(group => {
+              {visibleGroups.map(group => {
                 const entries = methodsForCurrency.filter(e => e.group === group)
                 if (entries.length === 0) return null
                 return (
@@ -167,6 +184,28 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
               })}
             </select>
           </div>
+
+          {isStripe ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">{t('stripeConnectSteps')}</p>
+              <div className="space-y-2">
+                <Label>{t('stripeCountryLabel')}</Label>
+                <select
+                  value={stripeCountry}
+                  onChange={(e) => setStripeCountry(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
+                >
+                  <option value="">{t('stripeCountryPlaceholder')}</option>
+                  {stripeCountryOptions.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </div>
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                {t('stripeSecurityNote')}
+              </p>
+            </div>
+          ) : (
+          <>
           <div className="space-y-2">
             <Label>{isBank ? t('bankHolderLabel') : isPix ? t('pixHolderLabel') : t('labelLabel')}{(isOther || isBank || isPix) && ' *'}</Label>
             <Input
@@ -256,12 +295,23 @@ export function PaymentMethodForm({ profileId, method, nextSortOrder = 0, financ
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border-input" />
             {t('activeLabel')}
           </label>
+          </>
+          )}
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>{t('cancel')}</Button>
-            <Button type="submit" className="flex-1" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {method ? t('save') : t('create')}
-            </Button>
+            {isStripe ? (
+              <a href={stripeCountry ? `/api/stripe/connect/start?country=${stripeCountry}` : undefined} className="flex-1">
+                <Button type="button" className="w-full gap-2" disabled={!stripeCountry}>
+                  <Zap className="h-4 w-4" />
+                  {t('stripeConnect')}
+                </Button>
+              </a>
+            ) : (
+              <Button type="submit" className="flex-1" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {method ? t('save') : t('create')}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

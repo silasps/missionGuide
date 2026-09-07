@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
@@ -9,9 +10,10 @@ import { getPaymentMethodEntry } from '@/lib/payment-methods/catalog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { PaymentMethodForm } from './payment-method-form'
 import { toast } from 'sonner'
-import { Trash2, Copy, AlertTriangle } from 'lucide-react'
+import { Trash2, Copy, AlertTriangle, Loader2 } from 'lucide-react'
 
 interface Props {
   method: PaymentMethod
@@ -23,20 +25,28 @@ export function PaymentMethodCard({ method, profileId, financialAccounts }: Prop
   const t = useTranslations('PaymentMethods')
   const router = useRouter()
   const { isPending: deleting, run } = usePendingAction()
+  const [removed, setRemoved] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const entry = getPaymentMethodEntry(method.type)
   const Icon = entry.icon
   const label = method.label || t(`type_${method.type}`)
 
   function handleDelete() {
-    if (!confirm(t('confirmDelete', { label }))) return
     run(true, async () => {
       const supabase = createClient()
       const { error } = await supabase.from('payment_methods').delete().eq('id', method.id)
       if (error) { toast.error(t('errorDelete')); return }
       toast.success(t('deleted'))
+      setConfirmOpen(false)
+      // Some da tela na hora — não espera o round-trip do router.refresh()
+      // (que rebusca a página inteira no servidor) pra sumir com o card;
+      // ele só reconcilia o estado do servidor em segundo plano depois.
+      setRemoved(true)
       router.refresh()
     })
   }
+
+  if (removed) return null
 
   async function handleCopy() {
     await navigator.clipboard.writeText(method.value)
@@ -68,11 +78,27 @@ export function PaymentMethodCard({ method, profileId, financialAccounts }: Prop
         )}
         <div className="flex gap-2 pt-1">
           <PaymentMethodForm profileId={profileId} method={method} financialAccounts={financialAccounts} />
-          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleDelete} disabled={deleting}>
+          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmOpen(true)} disabled={deleting}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardContent>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('confirmDeleteTitle')}</DialogTitle>
+            <DialogDescription>{t('confirmDelete', { label })}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setConfirmOpen(false)}>{t('cancel')}</Button>
+            <Button type="button" variant="destructive" className="flex-1" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('confirmDeleteButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

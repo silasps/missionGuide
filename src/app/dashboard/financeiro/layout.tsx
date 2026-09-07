@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/supabase/server'
 import { getActiveProfile } from '@/lib/profile/active-profile'
 import { isSuperAdmin } from '@/lib/auth/superadmin'
 import { FinanceSubNav } from '@/components/financial/finance-sub-nav'
@@ -11,8 +11,7 @@ import { cn } from '@/lib/utils'
 import { ShieldAlert, Lock, ArrowRight } from 'lucide-react'
 
 export default async function FinanceiroLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) redirect('/login')
 
   const [profile, t] = await Promise.all([getActiveProfile(), getTranslations('FinanceGate')])

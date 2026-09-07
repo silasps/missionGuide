@@ -18,9 +18,10 @@ interface Props {
   viewerFollowedIds: string[]
   mutualIds: string[]
   isOwnerView: boolean
+  viewerProfileId: string | null
 }
 
-export function FollowsList({ ownerProfileId, kind, initialEntries, initialHasMore, viewerFollowedIds, mutualIds, isOwnerView }: Props) {
+export function FollowsList({ ownerProfileId, kind, initialEntries, initialHasMore, viewerFollowedIds, mutualIds, isOwnerView, viewerProfileId }: Props) {
   const t = useTranslations('FollowsList')
   const tFeed = useTranslations('Feed')
   const [entries, setEntries] = useState(initialEntries)
@@ -60,11 +61,13 @@ export function FollowsList({ ownerProfileId, kind, initialEntries, initialHasMo
               </p>
             </div>
           </Link>
-          <FollowButton
-            profileId={entry.profileId}
-            initiallyFollowing={followedSet.has(entry.profileId)}
-            followsViewer={kind === 'followers' && isOwnerView}
-          />
+          {entry.profileId !== viewerProfileId && (
+            <FollowButton
+              profileId={entry.profileId}
+              initiallyFollowing={followedSet.has(entry.profileId)}
+              followsViewer={kind === 'followers' && isOwnerView}
+            />
+          )}
         </div>
       ))}
       {hasMore && (

@@ -1,5 +1,11 @@
 export const CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'AUD']
 
+// Taxa da Stripe tem uma parte fixa por transação (~R$0,39 no Brasil) que
+// come uma fatia desproporcional de valores muito pequenos — só se aplica
+// a cartão (Stripe), métodos manuais (Pix, transferência, etc.) não têm
+// esse custo e por isso não têm mínimo.
+export const MIN_STRIPE_AMOUNT = 10
+
 export const CURRENCY_FLAGS: Record<string, string> = {
   BRL: '🇧🇷', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', CHF: '🇨🇭', CAD: '🇨🇦', AUD: '🇦🇺',
 }

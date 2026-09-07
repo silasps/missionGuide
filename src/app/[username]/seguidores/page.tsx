@@ -14,6 +14,7 @@ import {
   getFollowerProfileIds,
 } from '@/app/dashboard/feed/follows-list-actions'
 import { getFollowedProfileIds } from '@/app/dashboard/feed/actions'
+import { getActiveProfile } from '@/lib/profile/active-profile'
 
 interface Props {
   params: Promise<{ username: string }>
@@ -52,11 +53,12 @@ export default async function SeguidoresPage({ params, searchParams }: Props) {
     if (!partner) notFound()
   }
 
-  const [entries, counts, viewerFollowedIds, mutualIds] = await Promise.all([
+  const [entries, counts, viewerFollowedIds, mutualIds, viewerProfile] = await Promise.all([
     kind === 'followers' ? getFollowers(profile.id) : getFollowing(profile.id),
     getFollowCounts(profile.id),
     getFollowedProfileIds(),
     canEdit && kind === 'following' ? getFollowerProfileIds(profile.id) : Promise.resolve<string[]>([]),
+    getActiveProfile(),
   ])
 
   const base = `/${username}/seguidores`
@@ -98,6 +100,7 @@ export default async function SeguidoresPage({ params, searchParams }: Props) {
           viewerFollowedIds={viewerFollowedIds}
           mutualIds={mutualIds}
           isOwnerView={canEdit}
+          viewerProfileId={viewerProfile?.id ?? null}
         />
       </div>
     </div>

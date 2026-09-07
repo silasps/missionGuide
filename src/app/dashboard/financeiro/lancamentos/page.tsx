@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { getActiveProfile } from '@/lib/profile/active-profile'
 import { markNotificationTypesRead } from '@/lib/notifications/mark-read'
 import { TransactionTable } from '@/components/financial/transaction-table'
@@ -13,8 +13,7 @@ interface Props {
 export default async function LancamentosPage({ searchParams }: Props) {
   const { account, category } = await searchParams
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const profile = await getActiveProfile()
+  const [user, profile] = await Promise.all([getCachedUser(), getActiveProfile()])
 
   await markNotificationTypesRead(supabase, user!.id, ['new_pledge', 'pledge_confirmed'])
 

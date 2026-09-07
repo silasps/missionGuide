@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
+import { MIN_STRIPE_AMOUNT } from '@/lib/currency-mask'
 
 export async function POST(req: NextRequest) {
   const stripe = getStripeClient()
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
   }
   if (!profileId || !amount || amount <= 0 || !currency) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+  }
+  // Espelha a validação do client (recurring-pledge-form.tsx).
+  if (amount < MIN_STRIPE_AMOUNT) {
+    return NextResponse.json({ error: 'amount_below_minimum' }, { status: 400 })
   }
 
   const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', profileId).maybeSingle()

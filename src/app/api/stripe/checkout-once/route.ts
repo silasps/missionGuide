@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
+import { MIN_STRIPE_AMOUNT } from '@/lib/currency-mask'
 
 // Doação avulsa com cartão, sem exigir login (diferente da recorrente em
 // checkout-recurring/route.ts) — o pledge só é criado depois, pelo webhook,
@@ -16,6 +17,11 @@ export async function POST(req: NextRequest) {
   }
   if (!profileId || !amount || amount <= 0 || !currency) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+  }
+  // Espelha a validação do client (pledge-form.tsx) — nunca confiar só
+  // nela, essa rota é chamada direto por quem quiser.
+  if (amount < MIN_STRIPE_AMOUNT) {
+    return NextResponse.json({ error: 'amount_below_minimum' }, { status: 400 })
   }
   if (!isAnonymous && !name?.trim()) {
     return NextResponse.json({ error: 'name_required' }, { status: 400 })

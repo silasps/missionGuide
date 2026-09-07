@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/supabase/server'
 import { getActiveProfile, getAccessibleProfiles } from '@/lib/profile/active-profile'
 import { getPreviewRole } from '@/lib/profile/role-preview'
 import { isSuperAdmin } from '@/lib/auth/superadmin'
@@ -17,11 +17,10 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { LanguageSwitcher } from '@/components/marketing/language-switcher'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
   // getTranslations não depende do usuário — roda em paralelo com o gate de
   // autenticação em vez de esperar ele terminar pra só então começar.
-  const [{ data: { user } }, t] = await Promise.all([
-    supabase.auth.getUser(),
+  const [user, t] = await Promise.all([
+    getCachedUser(),
     getTranslations('DashboardNav'),
   ])
 

@@ -1,5 +1,6 @@
+import { cache } from 'react'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { Profile } from '@/types/database'
 
 export const ACTIVE_PROFILE_COOKIE = 'active_profile_id'
@@ -11,9 +12,17 @@ export type AccessibleProfile = Pick<Profile, 'id' | 'username' | 'display_name'
 // profile_managers). RLS garante que só se retorna algo se o usuário
 // realmente tiver acesso — cookie inválido/stale cai de volta para a
 // conta própria.
-export async function getActiveProfile(): Promise<Profile | null> {
+//
+// React cache() memoiza por request: várias telas chamam getActiveProfile()
+// no mesmo carregamento (dashboard/layout.tsx, financeiro/layout.tsx, e às
+// vezes a própria page.tsx) — sem isso, cada chamada refazia a viagem completa
+// (auth.getUser() + query de profiles) do zero, mesmo dentro do mesmo
+// request. Trocar de aba dentro do Financeiro sentia lento por causa disso
+// (reportado pelo usuário testando em produção) — layout pai e layout do
+// Financeiro pagavam o mesmo custo duas vezes a cada navegação.
+export const getActiveProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return null
 
   const cookieStore = await cookies()
@@ -26,7 +35,7 @@ export async function getActiveProfile(): Promise<Profile | null> {
 
   const { data: owned } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle()
   return owned
-}
+})
 
 export async function getAccessibleProfiles(): Promise<AccessibleProfile[]> {
   const supabase = await createClient()
