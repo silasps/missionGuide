@@ -2,6 +2,58 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
+import { sendEmail } from '@/lib/email/brevo'
+import { renderEmailTemplate } from '@/lib/email/template'
+import { formatCurrency } from '@/lib/utils'
+
+type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>
+
+// Cumpre a responsabilidade de "notificar vendedores quando afetados por
+// risco/prevenção de fraude" que a Stripe exige reconhecer no perfil da
+// plataforma (Managed risk, ver system.architecture.md 7.11) — sem isso o
+// missionário só saberia que a conta dele foi restringida se checasse o
+// próprio Dashboard da Stripe por conta própria.
+async function notifyConnectedAccountOwner(
+  supabase: ServiceClient,
+  appUrl: string,
+  stripeAccountId: string,
+  subject: string,
+  bodyHtml: string,
+  preheader: string
+) {
+  const { data: method } = await supabase
+    .from('payment_methods')
+    .select('profile_id')
+    .eq('type', 'stripe')
+    .eq('value', stripeAccountId)
+    .maybeSingle()
+  if (!method) return
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('user_id, display_name')
+    .eq('id', method.profile_id)
+    .maybeSingle()
+  if (!profile) return
+
+  const { data: userRes } = await supabase.auth.admin.getUserById(profile.user_id)
+  const email = userRes?.user?.email
+  if (!email) return
+
+  await sendEmail({
+    to: email,
+    toName: profile.display_name,
+    subject,
+    html: renderEmailTemplate({
+      appUrl,
+      title: subject,
+      accent: 'warning',
+      preheader,
+      bodyHtml,
+      cta: { url: `${appUrl}/dashboard/configuracoes?tab=pagamentos`, label: 'Ver configurações de pagamento' },
+    }),
+  })
+}
 
 // Webhook de Stripe Connect — recebe eventos de TODAS as contas conectadas
 // (endpoint configurado nas configurações de Connect do Stripe Dashboard,
@@ -174,6 +226,42 @@ export async function POST(req: NextRequest) {
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription
     await supabase.from('recurring_pledges').update({ status: 'cancelled' }).eq('stripe_subscription_id', subscription.id)
+  }
+
+  // Conta conectada restringida (risco/conformidade/documentação pendente) —
+  // só alerta quando `requirements` mudou NESTE evento (previous_attributes),
+  // não em toda atualização irrelevante da conta enquanto ela seguir restrita.
+  if (event.type === 'account.updated' && event.account) {
+    const account = event.data.object as Stripe.Account
+    const changedRequirements = (event.data.previous_attributes as Partial<Stripe.Account> | undefined)?.requirements
+    if (changedRequirements && account.requirements?.disabled_reason) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
+      await notifyConnectedAccountOwner(
+        supabase,
+        appUrl,
+        event.account,
+        'Sua conta Stripe precisa de atenção',
+        `<p style="margin:0 0 12px;">A Stripe restringiu temporariamente o recebimento de pagamentos na sua conta conectada, por questões de risco ou conformidade.</p>
+         <p style="margin:0 0 12px;padding:12px 14px;background:#faf5eb;border-radius:10px;color:#0a0a0a;"><strong>Motivo informado pela Stripe:</strong> ${account.requirements.disabled_reason}</p>
+         <p style="margin:0;">Acesse suas configurações de pagamento pra ver o que precisa ser resolvido — geralmente é só confirmar algum documento ou dado adicional.</p>`,
+        'Sua conta Stripe foi restringida — veja o que fazer.'
+      )
+    }
+  }
+
+  // Contestação (chargeback) numa cobrança da conta conectada.
+  if (event.type === 'charge.dispute.created' && event.account) {
+    const dispute = event.data.object as Stripe.Dispute
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
+    await notifyConnectedAccountOwner(
+      supabase,
+      appUrl,
+      event.account,
+      'Uma contestação foi aberta na sua conta Stripe',
+      `<p style="margin:0 0 12px;">Um pagamento de <strong>${formatCurrency(dispute.amount / 100, dispute.currency.toUpperCase())}</strong> recebido na sua conta foi contestado pelo titular do cartão (motivo: ${dispute.reason.replace(/_/g, ' ')}).</p>
+       <p style="margin:0;">Responda essa contestação direto no seu Dashboard da Stripe o quanto antes — contestações não respondidas dentro do prazo costumam ser perdidas automaticamente.</p>`,
+      'Uma contestação foi aberta — responda no prazo.'
+    )
   }
 
   return NextResponse.json({ received: true })
