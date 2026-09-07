@@ -6,7 +6,7 @@ import { coverThumbnailSrc } from '@/lib/media/bunny-thumbnail'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Search as SearchIcon } from 'lucide-react'
+import { Search as SearchIcon, Loader2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn, getInitials } from '@/lib/utils'
 import { useDirectorySearch } from '@/hooks/use-directory-search'
@@ -63,6 +63,11 @@ export function HeaderSearch({ className = 'hidden md:block' }: { className?: st
 
       {open && trimmedQuery.length >= 2 && (
         <div className="absolute left-0 top-full mt-2 w-80 max-h-[70vh] overflow-y-auto overflow-x-hidden rounded-xl border bg-popover shadow-lg ring-1 ring-foreground/10 p-2 z-50">
+          {loading && (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
           {!loading && !hasResults && (
             <p className="text-sm text-muted-foreground text-center py-6">{t('noResults', { query: trimmedQuery })}</p>
           )}

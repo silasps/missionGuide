@@ -6,7 +6,7 @@ import { coverThumbnailSrc } from '@/lib/media/bunny-thumbnail'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Search as SearchIcon, MapPin } from 'lucide-react'
+import { Search as SearchIcon, MapPin, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { FollowButton } from '@/components/dashboard/feed/follow-button'
@@ -40,6 +40,12 @@ function BuscarPageInner() {
 
       {trimmedQuery.length < 2 && (
         <p className="text-sm text-muted-foreground text-center py-10">{t('prompt')}</p>
+      )}
+
+      {trimmedQuery.length >= 2 && loading && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
       )}
 
       {trimmedQuery.length >= 2 && !loading && !hasResults && (
