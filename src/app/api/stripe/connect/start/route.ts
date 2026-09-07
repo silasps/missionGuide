@@ -60,7 +60,11 @@ export async function GET(req: NextRequest) {
         is_active: false,
         sort_order: 0,
       })
-    } catch {
+    } catch (err) {
+      // Diagnóstico temporário: esse catch engolia o erro real da Stripe,
+      // sem log nenhum — impossível saber por que falhava (pedido direto
+      // do usuário testando em produção, ver Vercel Logs).
+      console.error('[stripe/connect/start] accounts.create failed:', err)
       settingsUrl.searchParams.set('stripe', 'error')
       return NextResponse.redirect(settingsUrl)
     }
@@ -74,7 +78,8 @@ export async function GET(req: NextRequest) {
       return_url: `${appUrl}/api/stripe/connect/callback`,
     })
     return NextResponse.redirect(accountLink.url)
-  } catch {
+  } catch (err) {
+    console.error('[stripe/connect/start] accountLinks.create failed:', err)
     settingsUrl.searchParams.set('stripe', 'error')
     return NextResponse.redirect(settingsUrl)
   }
