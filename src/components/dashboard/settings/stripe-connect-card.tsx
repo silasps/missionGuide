@@ -145,6 +145,9 @@ export function StripeConnectCard({ stripeMethod, financialAccounts }: Props) {
                 </select>
               </div>
             )}
+            {!pending && (
+              <p className="text-xs text-muted-foreground">{t('stripeConnectSteps')}</p>
+            )}
             <a href={pending ? '/api/stripe/connect/start' : (country ? `/api/stripe/connect/start?country=${country}` : undefined)}>
               <Button size="sm" className="gap-2" disabled={!pending && !country}>
                 <Zap className="h-4 w-4" />
