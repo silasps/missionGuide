@@ -105,6 +105,7 @@ export async function getPartnershipData(username: string, { highlight_id, choic
     profileAvatarUrl: profile.avatar_url,
     highlightCoverUrl: highlight?.cover_url ?? null,
     highlightCoverPosition: highlight?.cover_position ?? null,
+    whatsappGroupUrl: profile.whatsapp_group_url ?? null,
     user: user ? {
       id: user.id,
       email: user.email ?? null,

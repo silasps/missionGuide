@@ -8,6 +8,7 @@ import { PledgeForm } from './pledge-form'
 import { RecurringPledgeForm } from './recurring-pledge-form'
 import { ScheduledPledgeForm } from './scheduled-pledge-form'
 import { PartnershipForm } from './partnership-form'
+import { AccountUpsellCard } from './account-upsell-card'
 import { PledgePaymentMethod } from '@/types/database'
 import type { BudgetCategoryOption } from './budget-category-select'
 import { CheckoutHeader } from './checkout-header'
@@ -43,9 +44,10 @@ export interface PartnershipWizardProps {
   highlightCoverUrl?: string | null
   highlightCoverPosition?: string | null
   user: SessionUser | null
+  whatsappGroupUrl?: string | null
 }
 
-export function PartnershipWizard({ profileId, username, initialChoice, missionaryName, missionStartYear, highlightId, highlightTitle, highlightGoalAmount, highlightCurrentAmount, defaultCurrency, paymentOptions, budgetCategories, initialCategoryId, hasFinancialOptions, stripeAvailable, profileAvatarUrl, highlightCoverUrl, highlightCoverPosition, user }: PartnershipWizardProps) {
+export function PartnershipWizard({ profileId, username, initialChoice, missionaryName, missionStartYear, highlightId, highlightTitle, highlightGoalAmount, highlightCurrentAmount, defaultCurrency, paymentOptions, budgetCategories, initialCategoryId, hasFinancialOptions, stripeAvailable, profileAvatarUrl, highlightCoverUrl, highlightCoverPosition, user, whatsappGroupUrl }: PartnershipWizardProps) {
   const t = useTranslations('PartnershipWizard')
   const router = useRouter()
   const pathname = usePathname()
@@ -128,6 +130,7 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
         highlightId={highlightId}
         budgetCategories={budgetCategories}
         initialCategoryId={initialCategoryId}
+        whatsappGroupUrl={whatsappGroupUrl}
       />
     )
   }
@@ -146,6 +149,7 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
         backHref={listHref}
         user={user}
         highlightId={highlightId}
+        whatsappGroupUrl={whatsappGroupUrl}
       />
     )
   }
@@ -155,10 +159,12 @@ export function PartnershipWizard({ profileId, username, initialChoice, missiona
   // escolhas usam o cartão centralizado tradicional, envolvido aqui.
   if (choice === 'prayer' || choice === 'ambassador' || choice === 'volunteer') {
     const typeMap = { prayer: 'prayer', ambassador: 'ambassador', volunteer: 'both' } as const
+    const redirectParam = encodeURIComponent(`/${username}?resumeChoice=${choice}`)
     return (
       <div className="min-h-screen bg-background">
         <CheckoutHeader backHref={listHref} />
-        <div className="mx-auto max-w-md px-4 pt-[72px] pb-8">
+        <div className="mx-auto max-w-md px-4 pt-[72px] pb-8 space-y-4">
+          {!user && <AccountUpsellCard missionaryName={missionaryName} redirectParam={redirectParam} whatsappGroupUrl={whatsappGroupUrl} />}
           <PartnershipForm profileId={profileId} missionaryName={missionaryName} defaultType={typeMap[choice]} />
         </div>
       </div>

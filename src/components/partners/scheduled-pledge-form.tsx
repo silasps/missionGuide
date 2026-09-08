@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { CheckoutHeader } from './checkout-header'
-import { NeedsAccountCard } from './needs-account-card'
+import { AccountUpsellCard } from './account-upsell-card'
 import { DonationHero } from './donation-hero'
 import { CurrencySelect } from './currency-select'
 import { AmountChips } from './amount-chips'
@@ -39,6 +40,7 @@ interface Props {
   backHref: string
   user: SessionUser | null
   highlightId?: string
+  whatsappGroupUrl?: string | null
 }
 
 function tomorrow() {
@@ -50,12 +52,15 @@ function tomorrow() {
  *  é pedido de verdade quando a pessoa volta pelo link do lembrete, direto
  *  no PledgeForm). Não é recorrente — pra isso já existe "Ser parceiro
  *  fixo" (RecurringPledgeForm). Ver cron scheduled-pledge-reminders. */
-export function ScheduledPledgeForm({ profileId, username, missionaryName, defaultCurrency, paymentOptions, stripeAvailable = false, heroImageUrl = null, heroImagePosition, backHref, user, highlightId }: Props) {
+export function ScheduledPledgeForm({ profileId, username, missionaryName, defaultCurrency, paymentOptions, stripeAvailable = false, heroImageUrl = null, heroImagePosition, backHref, user, highlightId, whatsappGroupUrl }: Props) {
   const t = useTranslations('ScheduledPledge')
   const [done, setDone] = useState(false)
   const [date, setDate] = useState(tomorrow())
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState(defaultCurrency)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const { isPending: saving, run } = usePendingAction()
   const doneRef = useRef<HTMLDivElement>(null)
 
@@ -79,19 +84,6 @@ export function ScheduledPledgeForm({ profileId, username, missionaryName, defau
   // completa a navegação até o wizard, de dentro da árvore de rotas certa
   // pro modal reabrir (ver comentário lá).
   const redirectParam = encodeURIComponent(`/${username}?resumeChoice=financial_scheduled${highlightId ? `&resumeHighlightId=${highlightId}` : ''}`)
-
-  if (!user) {
-    return (
-      <NeedsAccountCard
-        backHref={backHref}
-        redirectParam={redirectParam}
-        title={t('needsAccountTitle')}
-        description={t('needsAccountDescription')}
-        createAccountLabel={t('createAccount')}
-        alreadyHaveAccountLabel={t('alreadyHaveAccount')}
-      />
-    )
-  }
 
   if (done) {
     return (
@@ -121,9 +113,44 @@ export function ScheduledPledgeForm({ profileId, username, missionaryName, defau
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const currentUser = user
-    if (!currentUser) return
     const parsedAmount = amount ? parseFloat(fromMasked(amount, currency)) : null
+
+    if (!user) {
+      if (!name.trim()) { toast.error(t('errorName')); return }
+      if (!email.trim() && !phone.trim()) { toast.error(t('errorContact')); return }
+
+      run(true, async () => {
+        const supabase = createClient()
+        // Convidado sem conta: sem RLS de leitura equivalente à do usuário
+        // logado (auth.uid() = reporter_user_id) pra pré-checar duplicidade
+        // sem vazar "esse e-mail já tem lembrete pendente" pra qualquer
+        // chamador anônimo — e sem linha em `partners` (mesma simplificação
+        // que `pledges` já dá a convidado/anônimo).
+        const { error } = await supabase.from('scheduled_pledges').insert({
+          profile_id: profileId,
+          partner_id: null,
+          reporter_user_id: null,
+          reporter_name: name.trim(),
+          reporter_email: email.trim() || null,
+          reporter_phone: phone.trim() || null,
+          amount: parsedAmount && parsedAmount > 0 ? parsedAmount : null,
+          currency: parsedAmount && parsedAmount > 0 ? currency : null,
+          highlight_id: highlightId ?? null,
+          scheduled_date: date,
+          status: 'pending',
+        })
+
+        if (error) {
+          console.error('scheduled_pledges insert failed (guest):', error)
+          toast.error(t('errorSave'))
+          return
+        }
+        setDone(true)
+      })
+      return
+    }
+
+    const currentUser = user
 
     run(true, async () => {
       const supabase = createClient()
@@ -193,6 +220,10 @@ export function ScheduledPledgeForm({ profileId, username, missionaryName, defau
 
         <p className="text-sm text-muted-foreground">{t('intro', { name: missionaryName })}</p>
 
+        {!user && (
+          <AccountUpsellCard missionaryName={missionaryName} redirectParam={redirectParam} whatsappGroupUrl={whatsappGroupUrl} />
+        )}
+
         <form id="scheduled-pledge-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>{t('dateLabel')} *</Label>
@@ -207,6 +238,25 @@ export function ScheduledPledgeForm({ profileId, username, missionaryName, defau
             <AmountChips currency={currency} selectedMasked={amount} onSelect={setAmount} />
             <Input inputMode="numeric" value={amount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(toMasked(e.target.value, currency))} placeholder={t('amountPlaceholder')} />
           </div>
+
+          {!user && (
+            <div className="space-y-4 border-t border-border pt-4">
+              <h2 className="text-sm font-semibold">{t('sectionYourDataTitle')}</h2>
+              <div className="space-y-2">
+                <Label>{t('nameLabel')} *</Label>
+                <Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder={t('namePlaceholder')} required />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('emailLabel')}</Label>
+                <Input type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} placeholder={t('emailPlaceholder')} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('phoneLabel')}</Label>
+                <PhoneInput defaultValue={phone} onChange={setPhone} />
+              </div>
+              <p className="text-xs text-muted-foreground">{t('contactHint', { name: missionaryName })}</p>
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground">{t('note')}</p>
         </form>

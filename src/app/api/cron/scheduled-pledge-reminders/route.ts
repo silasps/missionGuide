@@ -34,28 +34,37 @@ export async function GET(req: NextRequest) {
     const continueUrl = `${appUrl}/${missionaryProfile.username}/parceria?${params.toString()}`
     const cancelUrl = `${appUrl}/api/scheduled-pledges/${sp.id}/cancel`
 
-    await supabase.rpc('notify', {
-      p_recipient_user_id: sp.reporter_user_id,
-      p_type: 'scheduled_pledge_reminder',
-      p_payload: {
-        username: missionaryProfile.username,
-        choice,
-        scheduled_pledge_id: sp.id,
-        highlight_id: sp.highlight_id,
-        amount: sp.amount,
-        currency: sp.currency,
-      },
-    })
+    // Convidado sem conta (reporter_user_id nulo) não tem pra quem
+    // notificar in-app — notify() já no-opa com NULL, mas evita a chamada
+    // à toa.
+    if (sp.reporter_user_id) {
+      await supabase.rpc('notify', {
+        p_recipient_user_id: sp.reporter_user_id,
+        p_type: 'scheduled_pledge_reminder',
+        p_payload: {
+          username: missionaryProfile.username,
+          choice,
+          scheduled_pledge_id: sp.id,
+          highlight_id: sp.highlight_id,
+          amount: sp.amount,
+          currency: sp.currency,
+        },
+      })
+    }
 
-    let ok = true
-    if (partner?.email) {
-      ok = await sendEmail({
-        to: partner.email,
-        toName: partner.name ?? '',
+    // Convidado não tem linha em `partners` — cai pros campos gravados
+    // direto na própria linha (ver migration 093).
+    const recipientEmail = partner?.email ?? sp.reporter_email
+    const recipientName = partner?.name ?? sp.reporter_name ?? ''
+
+    if (recipientEmail) {
+      const ok = await sendEmail({
+        to: recipientEmail,
+        toName: recipientName,
         subject: 'Hoje é o dia combinado — sem cobrança',
         html: wrapEmail(`
           <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
-            Olá, ${partner.name}! Você combinou pensar em ajudar <strong>${missionaryProfile.display_name}</strong>
+            Olá, ${recipientName}! Você combinou pensar em ajudar <strong>${missionaryProfile.display_name}</strong>
             por volta de hoje${sp.amount ? `, com algo perto de ${sp.amount} ${sp.currency}` : ''}.
           </p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
@@ -76,11 +85,15 @@ export async function GET(req: NextRequest) {
           </p>
         `, 'Hoje é o dia combinado'),
       })
-    }
 
-    if (ok) {
-      sent += 1
-      await supabase.from('scheduled_pledges').update({ status: 'sent', reminded_at: new Date().toISOString() }).eq('id', sp.id)
+      // Só marca como enviado quando de fato tentou (e conseguiu) mandar
+      // e-mail — sem isso, uma linha sem e-mail nenhum (parceiro sem
+      // e-mail cadastrado, ou convidado que só deixou WhatsApp) virava
+      // "sent" sem nunca ter avisado ninguém.
+      if (ok) {
+        sent += 1
+        await supabase.from('scheduled_pledges').update({ status: 'sent', reminded_at: new Date().toISOString() }).eq('id', sp.id)
+      }
     }
   }
 

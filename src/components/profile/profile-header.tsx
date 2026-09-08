@@ -131,6 +131,11 @@ export async function ProfileHeader({ profile, postsCount, projectsCount, achiev
               Facebook
             </Link>
           )}
+          {profile.whatsapp_group_url && (
+            <Link href={profile.whatsapp_group_url} target="_blank" className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">
+              WhatsApp
+            </Link>
+          )}
         </div>
       )}
     </div>

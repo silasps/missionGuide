@@ -75,6 +75,7 @@ export interface Profile {
   youtube_url: string | null
   facebook_url: string | null
   tiktok_url: string | null
+  whatsapp_group_url: string | null
   ai_credits: number
   extra_manager_seats: number
   mission_start_date: string | null

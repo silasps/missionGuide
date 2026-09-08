@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Card, CardContent } from '@/components/ui/card'
 import { CheckoutHeader } from './checkout-header'
-import { NeedsAccountCard } from './needs-account-card'
+import { AccountUpsellCard } from './account-upsell-card'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle } from 'lucide-react'
 import { toMasked, fromMasked, CURRENCIES, MIN_STRIPE_AMOUNT } from '@/lib/currency-mask'
@@ -50,12 +50,18 @@ interface Props {
   highlightId?: string
   budgetCategories?: BudgetCategoryOption[]
   initialCategoryId?: string | null
+  whatsappGroupUrl?: string | null
 }
 
-export function RecurringPledgeForm({ profileId, username, missionaryName, currency: projectCurrency, paymentOptions, stripeAvailable, heroImageUrl = null, heroImagePosition, backHref, user, highlightId, budgetCategories, initialCategoryId }: Props) {
+export function RecurringPledgeForm({ profileId, username, missionaryName, currency: projectCurrency, paymentOptions, stripeAvailable, heroImageUrl = null, heroImagePosition, backHref, user, highlightId, budgetCategories, initialCategoryId, whatsappGroupUrl }: Props) {
   const t = useTranslations('RecurringPledge')
   const tPledge = useTranslations('PledgeForm')
   const searchParams = useSearchParams()
+  // Assinatura automática via Cartão exige conta no servidor
+  // (checkout-recurring/route.ts responde 401 sem usuário autenticado) —
+  // diferente do avulso (checkout-once), essa é uma limitação real, não só
+  // de UI. Convidado só vê métodos manuais.
+  const canUseStripe = stripeAvailable && !!user
   // Volta do Stripe Checkout é reload completo (window.location.href em
   // handleStripeCheckout), então nenhum state local sobrevive — só o
   // `stripe=success` do success_url (checkout-recurring/route.ts) revela
@@ -66,10 +72,12 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
   const [redirectSeconds, setRedirectSeconds] = useState(50)
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId ?? null)
-  const [optionId, setOptionId] = useState(stripeAvailable ? 'stripe' : (paymentOptions[0]?.id ?? 'other'))
+  const [optionId, setOptionId] = useState(canUseStripe ? 'stripe' : (paymentOptions[0]?.id ?? 'other'))
   const [reminderOptIn, setReminderOptIn] = useState(true)
   const [contactPhone, setContactPhone] = useState(user?.phone ?? '')
   const [whatsappOptIn, setWhatsappOptIn] = useState(user?.whatsappOptIn ?? false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const amountInputRef = useRef<HTMLInputElement>(null)
   const doneRef = useRef<HTMLDivElement>(null)
   const { isPending: startingCheckout, run: runCheckout } = usePendingAction()
@@ -107,10 +115,10 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
   // (handleOptionSelect). Dropdown mostra a lista completa quando Stripe
   // está conectado.
   const [selectedCurrency, setSelectedCurrency] = useState(projectCurrency)
-  const allOptions: PaymentOption[] = stripeAvailable
+  const allOptions: PaymentOption[] = canUseStripe
     ? [{ id: 'stripe', method: 'stripe', label: t('cardTab'), value: '', details: null, currency: projectCurrency }, ...paymentOptions]
     : paymentOptions
-  const dropdownCurrencies = stripeAvailable
+  const dropdownCurrencies = canUseStripe
     ? CURRENCIES
     : (paymentOptions.length > 0 ? Array.from(new Set(paymentOptions.map(o => o.currency))) : [projectCurrency])
   const selectedOption = allOptions.find(o => o.id === optionId)
@@ -123,7 +131,7 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
     setSelectedCurrency(next)
     const stillValid = allOptions.some(o => o.id === optionId && (o.method === 'stripe' || o.currency === next))
     if (!stillValid) {
-      const fallback = stripeAvailable ? 'stripe' : allOptions.find(o => o.currency === next)?.id
+      const fallback = canUseStripe ? 'stripe' : allOptions.find(o => o.currency === next)?.id
       if (fallback) setOptionId(fallback)
     }
   }
@@ -144,16 +152,19 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
   // pro modal reabrir (ver comentário lá).
   const redirectParam = encodeURIComponent(`/${username}?resumeChoice=financial_ongoing${highlightId ? `&resumeHighlightId=${highlightId}` : ''}`)
 
-  if (!user) {
+  // Convidado sem nenhum método manual (o missionário só aceita Cartão, que
+  // exige conta) não tem formulário nenhum pra preencher aqui — só a nota +
+  // a oferta de conta.
+  if (!user && paymentOptions.length === 0) {
     return (
-      <NeedsAccountCard
-        backHref={backHref}
-        redirectParam={redirectParam}
-        title={t('needsAccountTitle')}
-        description={t('needsAccountDescription')}
-        createAccountLabel={t('createAccount')}
-        alreadyHaveAccountLabel={t('alreadyHaveAccount')}
-      />
+      <div className="min-h-screen bg-background">
+        <CheckoutHeader backHref={backHref} title={t('title', { name: missionaryName })} />
+        <div className="mx-auto max-w-md px-4 pt-[72px] pb-8 space-y-4">
+          <DonationHero imageUrl={heroImageUrl} alt={missionaryName} objectPosition={heroImagePosition} />
+          <p className="text-sm text-muted-foreground">{t('guestOnlyManualNote', { name: missionaryName })}</p>
+          <AccountUpsellCard missionaryName={missionaryName} redirectParam={redirectParam} whatsappGroupUrl={whatsappGroupUrl} />
+        </div>
+      </div>
     )
   }
 
@@ -200,16 +211,52 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
     e.preventDefault()
     const parsedAmount = parseFloat(fromMasked(amount, selectedCurrency))
     if (!parsedAmount || parsedAmount <= 0) { toast.error(t('errorAmount')); amountInputRef.current?.focus(); return }
+
+    // Telefone só chega ao missionário com autorização explícita (checkbox)
+    // — sem ela, a parceria segue sem esse dado, mesmo que a pessoa já
+    // tenha digitado algo no campo.
+    const authorizedPhone = whatsappOptIn && contactPhone.trim() ? contactPhone.trim() : null
+
+    if (!user) {
+      if (!name.trim()) { toast.error(t('errorName')); return }
+      if (!email.trim()) { toast.error(t('errorEmail')); return }
+
+      runManual(true, async () => {
+        const supabase = createClient()
+        // Convidado sem conta: sem linha em `partners` (mesma simplificação
+        // de ScheduledPledgeForm/pledges) — recorrência mensal precisa de
+        // e-mail de verdade pro lembrete funcionar, por isso obrigatório
+        // aqui (diferente do agendamento único, que aceita só WhatsApp).
+        const nextReminderAt = reminderOptIn
+          ? new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10)
+          : null
+        const { error } = await supabase.from('recurring_pledges').insert({
+          profile_id: profileId,
+          partner_id: null,
+          reporter_user_id: null,
+          reporter_name: name.trim(),
+          reporter_email: email.trim(),
+          reporter_phone: authorizedPhone,
+          amount: parsedAmount,
+          currency: selectedCurrency,
+          payment_method: method,
+          highlight_id: highlightId ?? null,
+          budget_category_id: highlightId ? categoryId : null,
+          reminder_opt_in: reminderOptIn,
+          next_reminder_at: nextReminderAt,
+          status: 'active',
+        })
+
+        if (error) { console.error('recurring_pledges insert failed (guest):', error); toast.error(t('errorSave')); return }
+        setDone(true)
+      })
+      return
+    }
+
     const currentUser = user
-    if (!currentUser) return
 
     runManual(true, async () => {
       const supabase = createClient()
-
-      // Telefone só chega ao missionário com autorização explícita (checkbox)
-      // — sem ela, a parceria segue sem esse dado, mesmo que a pessoa já
-      // tenha digitado algo no campo.
-      const authorizedPhone = whatsappOptIn && contactPhone.trim() ? contactPhone.trim() : null
 
       let partnerId: string
       const { data: existingPartner } = await supabase.from('partners').select('id').eq('profile_id', profileId).eq('user_id', currentUser.id).maybeSingle()
@@ -269,9 +316,13 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
       <div className="mx-auto max-w-md px-4 pt-[72px] pb-28 space-y-4">
         <DonationHero imageUrl={heroImageUrl} alt={missionaryName} objectPosition={heroImagePosition} />
 
-        <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-          {t('linkingAs', { email: user.email ?? '', name: missionaryName })}
-        </p>
+        {user ? (
+          <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+            {t('linkingAs', { email: user.email ?? '', name: missionaryName })}
+          </p>
+        ) : (
+          <AccountUpsellCard missionaryName={missionaryName} redirectParam={redirectParam} whatsappGroupUrl={whatsappGroupUrl} />
+        )}
 
         <DonationSummary amountFormatted={amountFormatted} label={t('summaryLabel', { name: missionaryName })} />
 
@@ -319,6 +370,20 @@ export function RecurringPledgeForm({ profileId, username, missionaryName, curre
           {!isStripe && (
             <form id="recurring-manual-form" onSubmit={handleManualSubmit} className="space-y-4">
               <p className="text-xs text-muted-foreground">{t('manualDescription')}</p>
+
+              {!user && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>{t('nameLabel')} *</Label>
+                    <Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder={t('namePlaceholder')} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('emailLabel')} *</Label>
+                    <Input type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} placeholder={t('emailPlaceholder')} required />
+                  </div>
+                </div>
+              )}
+
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={reminderOptIn} onChange={(e) => setReminderOptIn(e.target.checked)} className="rounded border-input" />
                 {t('reminderOptInLabel')}

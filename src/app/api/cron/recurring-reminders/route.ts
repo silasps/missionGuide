@@ -34,17 +34,21 @@ export async function GET(req: NextRequest) {
   for (const rp of due ?? []) {
     const partner = Array.isArray(rp.partners) ? rp.partners[0] : rp.partners
     const missionaryProfile = Array.isArray(rp.profiles) ? rp.profiles[0] : rp.profiles
-    if (!partner?.email || !missionaryProfile) continue
+    // Convidado sem conta não tem linha em `partners` — cai pros campos
+    // gravados direto na própria linha (ver migration 093).
+    const recipientEmail = partner?.email ?? rp.reporter_email
+    const recipientName = partner?.name ?? rp.reporter_name
+    if (!recipientEmail || !missionaryProfile) continue
 
     const methodLabel = t(`type_${rp.payment_method}`)
     const unsubscribeUrl = `${appUrl}/api/recurring-pledges/${rp.id}/unsubscribe`
 
     const ok = await sendEmail({
-      to: partner.email,
-      toName: partner.name,
+      to: recipientEmail,
+      toName: recipientName,
       subject: `Lembrete: apoio mensal a ${missionaryProfile.display_name}`,
       html: `
-        <p>Olá, ${partner.name}!</p>
+        <p>Olá, ${recipientName}!</p>
         <p>Este é um lembrete de que você combinou apoiar <strong>${missionaryProfile.display_name}</strong> mensalmente,
         no valor de ${rp.amount} ${rp.currency}, via <strong>${methodLabel}</strong>.</p>
         <p>Acesse <a href="${appUrl}/${missionaryProfile.username}/parceria">a página de parceria</a> para ver os dados de recebimento.</p>

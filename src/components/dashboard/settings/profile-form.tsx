@@ -92,6 +92,7 @@ export function ProfileForm({ profile, onSaved }: Props) {
   const [youtubeUrl, setYoutubeUrl] = useState(profile.youtube_url ?? '')
   const [facebookUrl, setFacebookUrl] = useState(profile.facebook_url ?? '')
   const [tiktokUrl, setTiktokUrl] = useState(profile.tiktok_url ?? '')
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState(profile.whatsapp_group_url ?? '')
 
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
   const [usernameTimer, setUsernameTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
@@ -227,6 +228,7 @@ export function ProfileForm({ profile, onSaved }: Props) {
           youtube_url: youtubeUrl || null,
           facebook_url: facebookUrl || null,
           tiktok_url: tiktokUrl || null,
+          whatsapp_group_url: whatsappGroupUrl || null,
         })
         .eq('id', profile.id)
 
@@ -492,6 +494,20 @@ export function ProfileForm({ profile, onSaved }: Props) {
             />
           </div>
         ))}
+      </div>
+
+      {/* Grupo do WhatsApp — separado das redes sociais porque não é um
+          perfil pra seguir, é um link de convite mostrado nas telas de
+          parceria como opção pra quem não quer criar conta. */}
+      <div className="space-y-2">
+        <Label htmlFor="whatsappGroup" className="text-base font-medium">{t('socialWhatsappGroup')}</Label>
+        <Input
+          id="whatsappGroup"
+          value={whatsappGroupUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWhatsappGroupUrl(e.target.value)}
+          placeholder="https://chat.whatsapp.com/..."
+        />
+        <p className="text-xs text-muted-foreground">{t('whatsappGroupHint')}</p>
       </div>
 
       <Button onClick={handleSave} disabled={saving || usernameStatus === 'taken' || usernameStatus === 'invalid'}>
