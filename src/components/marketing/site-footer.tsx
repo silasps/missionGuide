@@ -44,8 +44,12 @@ export async function SiteFooter() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto mt-10 pt-6 border-t text-xs text-muted-foreground">
-        © {new Date().getFullYear()} go→guide
+      <div className="max-w-6xl mx-auto mt-10 pt-6 border-t flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span>© {new Date().getFullYear()} go→guide</span>
+        <div className="flex items-center gap-4">
+          <Link href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</Link>
+          <Link href="/termos" className="hover:text-foreground transition-colors">Termos de uso</Link>
+        </div>
       </div>
     </footer>
   )
