@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useMotionValue, useSpring } from 'framer-motion'
 import { formatCurrency, cn } from '@/lib/utils'
 import { TimelinePoint } from '@/lib/financial/timeline'
-import { HIDDEN_VALUE_MASK } from './month-navigator'
+import { HIDDEN_VALUE_MASK, NO_DATA_MASK } from './month-navigator'
 import { History, TrendingUp, TrendingDown, Wallet, Info, CircleCheck, Clock3 } from 'lucide-react'
 
 interface Props {
@@ -13,18 +13,21 @@ interface Props {
   hideValues: boolean
 }
 
-function useCountUp(target: number) {
+// `target === null` (mês anterior à criação da conta, ver
+// `buildFinancialTimeline`) pula a animação e devolve `null` direto — não
+// há valor real nenhum pra contar até.
+function useCountUp(target: number | null) {
   const motionValue = useMotionValue(0)
   const spring = useSpring(motionValue, { stiffness: 90, damping: 20 })
   const [display, setDisplay] = useState(0)
 
-  useEffect(() => { motionValue.set(target) }, [target, motionValue])
+  useEffect(() => { if (target !== null) motionValue.set(target) }, [target, motionValue])
   useEffect(() => {
     const unsubscribe = spring.on('change', (v) => setDisplay(v))
     return unsubscribe
   }, [spring])
 
-  return display
+  return target === null ? null : display
 }
 
 function monthBounds(month: string) {
@@ -89,7 +92,7 @@ export function MonthSummaryCards({ point, currency, hideValues }: Props) {
   const saldoDisponivelDisplay = useCountUp(point.saldoDisponivel)
   const saldoPrevistoDisplay = useCountUp(point.saldoPrevisto)
 
-  const fmt = (v: number) => hideValues ? HIDDEN_VALUE_MASK : formatCurrency(v, currency)
+  const fmt = (v: number | null) => v === null ? NO_DATA_MASK : hideValues ? HIDDEN_VALUE_MASK : formatCurrency(v, currency)
   const checkIcon = <CircleCheck className="size-3.5 shrink-0 text-muted-foreground" />
   const clockIcon = <Clock3 className="size-3.5 shrink-0 text-muted-foreground" />
 

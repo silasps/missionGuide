@@ -58,11 +58,19 @@ export function FinancialDashboard({ accounts, transactions, categories, partner
   const txInCurrency = useMemo(() => transactions.filter((t) => t.currency === currency), [transactions, currency])
   const monthlyData = useMemo(() => aggregateMonthly(txInCurrency, monthsRange), [txInCurrency, monthsRange])
 
-  const currentBalance = useMemo(
-    () => activeAccounts.filter((a) => a.currency_code === currency).reduce((s, a) => s + a.balance, 0),
-    [activeAccounts, currency]
+  const accountsInCurrency = useMemo(() => activeAccounts.filter((a) => a.currency_code === currency), [activeAccounts, currency])
+  const currentBalance = useMemo(() => accountsInCurrency.reduce((s, a) => s + a.balance, 0), [accountsInCurrency])
+  // Menor `created_at` entre as contas somadas em `currentBalance` — meses
+  // anteriores a ele não têm saldo real pra mostrar (ver comentário de
+  // `buildFinancialTimeline`).
+  const accountsStartDate = useMemo(
+    () => accountsInCurrency.length ? new Date(Math.min(...accountsInCurrency.map((a) => new Date(a.created_at).getTime()))) : null,
+    [accountsInCurrency]
   )
-  const timelinePoints = useMemo(() => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6), [txInCurrency, currentBalance])
+  const timelinePoints = useMemo(
+    () => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6, accountsStartDate),
+    [txInCurrency, currentBalance, accountsStartDate]
+  )
   const selectedPoint = timelinePoints.find((p) => p.month === selectedMonth) ?? timelinePoints[6]
 
   const selectedMonthLabel = selectedPoint?.monthLabel ?? selectedMonth

@@ -51,11 +51,16 @@ export function ReportsAnalytics({ accounts, transactions, categories }: Props) 
 
   const txInCurrency = useMemo(() => transactions.filter((t) => t.currency === currency), [transactions, currency])
 
-  const currentBalance = useMemo(
-    () => accounts.filter((a) => a.currency_code === currency).reduce((s, a) => s + a.balance, 0),
-    [accounts, currency]
+  const accountsInCurrency = useMemo(() => accounts.filter((a) => a.currency_code === currency), [accounts, currency])
+  const currentBalance = useMemo(() => accountsInCurrency.reduce((s, a) => s + a.balance, 0), [accountsInCurrency])
+  const accountsStartDate = useMemo(
+    () => accountsInCurrency.length ? new Date(Math.min(...accountsInCurrency.map((a) => new Date(a.created_at).getTime()))) : null,
+    [accountsInCurrency]
   )
-  const timelinePoints = useMemo(() => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6), [txInCurrency, currentBalance])
+  const timelinePoints = useMemo(
+    () => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6, accountsStartDate),
+    [txInCurrency, currentBalance, accountsStartDate]
+  )
   const selectedPoint = timelinePoints.find((p) => p.month === selectedMonth) ?? timelinePoints[6]
   const selectedMonthLabel = selectedPoint?.monthLabel ?? selectedMonth
   const dateRangeLabel = monthDateRangeLabel(selectedMonth)

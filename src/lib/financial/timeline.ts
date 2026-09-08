@@ -12,9 +12,9 @@ export interface TimelinePoint {
   fixedIncome: number
   fixedExpense: number
   netCashFlow: number
-  saldoAnterior: number
-  saldoDisponivel: number
-  saldoPrevisto: number
+  saldoAnterior: number | null
+  saldoDisponivel: number | null
+  saldoPrevisto: number | null
 }
 
 export type TimelineMetric = 'saldo_previsto' | 'fluxo' | 'despesas' | 'despesas_fixas' | 'receitas' | 'receitas_fixas'
@@ -28,7 +28,7 @@ export const TIMELINE_METRICS: { value: TimelineMetric; label: string; descripti
   { value: 'receitas_fixas', label: 'Receitas fixas', description: 'Total de receitas recorrentes em cada mês.' },
 ]
 
-export function metricValue(point: TimelinePoint, metric: TimelineMetric): number {
+export function metricValue(point: TimelinePoint, metric: TimelineMetric): number | null {
   switch (metric) {
     case 'saldo_previsto': return point.saldoPrevisto
     case 'fluxo': return point.netCashFlow
@@ -46,23 +46,35 @@ function monthLabelFor(date: Date, currentYear: number) {
 }
 
 // Linha do tempo mensal com saldo projetado (modelo GranaZen — ver
-// system.architecture.md 7.19). `currentBalance` é o saldo real da(s)
+// system.architecture.md 7.20). `currentBalance` é o saldo real da(s)
 // conta(s) AGORA (soma de `financial_accounts.balance`, que só reflete
 // transações `is_paid=true`, seja qual for a data). A partir dele, a
 // função "desfaz" o efeito pago das transações dentro da janela pra achar
 // o saldo de antes do primeiro mês, e depois caminha mês a mês pra frente
 // — não precisa buscar histórico anterior à janela, o saldo atual já
 // carrega esse efeito embutido.
+//
+// Esse "desfazer" só é fiel enquanto a(s) conta(s) já existiam durante
+// todo o mês em questão: o saldo inicial informado na criação da conta
+// não é uma transação, então não há como a soma de transações pagas
+// "desfazer" ele sozinha — sem `accountsStartDate`, meses anteriores à
+// criação da conta ficariam mostrando o mesmo saldo atual, como se o
+// usuário já tivesse esse dinheiro antes de a conta existir no sistema.
+// `accountsStartDate` (menor `created_at` entre as contas ativas somadas
+// em `currentBalance`) marca esse limite: meses inteiramente antes dele
+// voltam `null` nos três campos de saldo em vez de um número inventado.
 export function buildFinancialTimeline(
   transactions: Transaction[],
   currentBalance: number,
   monthsBack: number,
-  monthsForward: number
+  monthsForward: number,
+  accountsStartDate: Date | null = null
 ): TimelinePoint[] {
   const now = new Date()
   const currentYear = now.getFullYear()
   const windowStart = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)
   const windowEndExclusive = new Date(now.getFullYear(), now.getMonth() + monthsForward + 1, 1)
+  const accountsStartMonth = accountsStartDate ? new Date(accountsStartDate.getFullYear(), accountsStartDate.getMonth(), 1) : null
 
   let paidNetWithinWindow = 0
   for (const t of transactions) {
@@ -94,10 +106,18 @@ export function buildFinancialTimeline(
 
     const income = incomeReceived + incomePending
     const expense = expensePaid + expenseUnpaid
-    const saldoAnterior = running
-    const saldoDisponivel = saldoAnterior + incomeReceived - expensePaid
-    const saldoPrevisto = saldoDisponivel + incomePending - expenseUnpaid
-    running = saldoDisponivel
+    const saldoAnteriorRunning = running
+    const saldoDisponivelRunning = saldoAnteriorRunning + incomeReceived - expensePaid
+    const saldoPrevistoRunning = saldoDisponivelRunning + incomePending - expenseUnpaid
+    running = saldoDisponivelRunning
+
+    // Mês inteiro anterior ao surgimento da(s) conta(s) no sistema: não há
+    // saldo real nenhum pra mostrar, então os três campos ficam `null` em
+    // vez de repetir o saldo atual (ver comentário da função).
+    const noAccountYet = accountsStartMonth !== null && d < accountsStartMonth
+    const saldoAnterior = noAccountYet ? null : saldoAnteriorRunning
+    const saldoDisponivel = noAccountYet ? null : saldoDisponivelRunning
+    const saldoPrevisto = noAccountYet ? null : saldoPrevistoRunning
 
     points.push({
       month,

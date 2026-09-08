@@ -8,6 +8,7 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { TimelinePoint, TimelineMetric, TIMELINE_METRICS, metricValue } from '@/lib/financial/timeline'
 
 export const HIDDEN_VALUE_MASK = '••••'
+export const NO_DATA_MASK = '---'
 
 interface Props {
   points: TimelinePoint[]
@@ -81,6 +82,9 @@ export function MonthNavigator({ points, selectedMonth, onSelectMonth, metric, o
               // ultrapassa a bolinha do mês atual rumo ao mês seguinte.
               const lineFuture = i >= currentIndex
               const value = metricValue(p, metric)
+              // Mês anterior à criação da(s) conta(s) no sistema (ver
+              // `buildFinancialTimeline`) — sem saldo real pra mostrar.
+              const noData = value === null
               return (
                 <div key={p.month} className="relative shrink-0" style={{ width: 144 }}>
                   {i < points.length - 1 && (
@@ -95,7 +99,7 @@ export function MonthNavigator({ points, selectedMonth, onSelectMonth, metric, o
                   <button
                     ref={selected ? selectedRef : undefined}
                     type="button"
-                    title={`${activeMetric.label} em ${p.monthLabel}: ${formatCurrency(value, currency)}`}
+                    title={`${activeMetric.label} em ${p.monthLabel}: ${noData ? 'sem dados (antes da criação da conta)' : formatCurrency(value, currency)}`}
                     onClick={() => onSelectMonth(p.month)}
                     className={cn(
                       'relative z-10 flex w-full flex-col items-center rounded-lg border px-2 py-3 h-24 text-center transition-colors',
@@ -118,8 +122,8 @@ export function MonthNavigator({ points, selectedMonth, onSelectMonth, metric, o
                       <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', selected ? 'bg-primary' : future ? 'bg-muted-foreground/30' : 'bg-primary/60')} />
                     </span>
                     <span className="flex flex-1 w-full items-center justify-center">
-                      <span className={cn('truncate text-sm tabular-nums leading-tight', selected ? 'font-bold text-foreground' : 'font-semibold text-foreground')}>
-                        {hideValues ? HIDDEN_VALUE_MASK : formatCurrency(value, currency)}
+                      <span className={cn('truncate text-sm tabular-nums leading-tight', selected ? 'font-bold text-foreground' : 'font-semibold text-foreground', noData && 'text-muted-foreground/60 font-normal')}>
+                        {noData ? NO_DATA_MASK : hideValues ? HIDDEN_VALUE_MASK : formatCurrency(value, currency)}
                       </span>
                     </span>
                   </button>
