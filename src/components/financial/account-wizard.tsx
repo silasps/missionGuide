@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { usePendingAction } from '@/hooks/use-pending-action'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { toMasked, fromMasked, reformatMasked, CURRENCIES } from '@/lib/currency-mask'
 import { AccountType, FinancialAccount } from '@/types/database'
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -29,6 +29,10 @@ interface Props {
 
 type AccountKind = 'automatic' | 'manual'
 type BalanceSign = 'positive' | 'negative'
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 const TOTAL_STEPS = 6
 const CARD_BRANDS = ['Visa', 'Mastercard', 'Elo', 'American Express', 'Hipercard', 'Outra']
@@ -97,6 +101,7 @@ export function AccountWizard({ open, onOpenChange, profileId, onCreated }: Prop
   const [name, setName] = useState('')
   const [openingBalance, setOpeningBalance] = useState('')
   const [balanceSign, setBalanceSign] = useState<BalanceSign>('positive')
+  const [openingDate, setOpeningDate] = useState(todayISO())
   const [accountType, setAccountType] = useState<AccountType | null>(null)
   const [creditLimit, setCreditLimit] = useState('')
   const [cardBrand, setCardBrand] = useState('')
@@ -126,13 +131,18 @@ export function AccountWizard({ open, onOpenChange, profileId, onCreated }: Prop
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
+      // `balance` nasce zerado e, quando há saldo inicial, é estabelecido
+      // por um lançamento `opening_balance` logo abaixo (não escrito direto
+      // aqui) — dá rastro no histórico (data + valor) em vez de um número
+      // solto sem origem, e o trigger `trg_update_balance` (migration 081)
+      // já aplica o efeito em `balance` sozinho, sem duplicar.
       const { data, error } = await supabase.from('financial_accounts').insert({
         profile_id: profileId,
         name: name.trim(),
         currency_code: currencyCode,
         account_type: accountType,
         is_shared: isShared,
-        balance: isCredit ? 0 : signedBalance,
+        balance: 0,
         created_by_user_id: user!.id,
         credit_limit: isCredit && creditLimit ? parseFloat(creditLimit) : null,
         closing_day: isCredit && closingDay ? parseInt(closingDay, 10) : null,
@@ -140,6 +150,23 @@ export function AccountWizard({ open, onOpenChange, profileId, onCreated }: Prop
         card_brand: isCredit ? (cardBrand || null) : null,
       }).select('*').single()
       if (error || !data) { toast.error('Erro ao criar conta.'); return }
+
+      if (!isCredit && signedBalance !== 0) {
+        const { error: txError } = await supabase.from('transactions').insert({
+          account_id: data.id,
+          profile_id: profileId,
+          created_by_user_id: user!.id,
+          type: signedBalance >= 0 ? 'income' : 'expense',
+          amount: Math.abs(signedBalance),
+          currency: currencyCode,
+          description: 'Saldo inicial',
+          source: 'opening_balance',
+          is_paid: true,
+          date: openingDate,
+        })
+        if (txError) toast.error('Conta criada, mas houve erro ao registrar o saldo inicial.')
+      }
+
       toast.success('Conta criada.')
       onOpenChange(false)
       onCreated?.(data)
@@ -199,11 +226,16 @@ export function AccountWizard({ open, onOpenChange, profileId, onCreated }: Prop
 
           {step === 3 && (
             <>
-              <StepHeader title="Qual é o saldo inicial?" subtitle="Informe quanto há nesta conta hoje." />
+              <StepHeader title="Qual é o saldo inicial?" subtitle="Informe quanto há nesta conta e desde quando." />
               <div className="space-y-2">
                 <Label>Saldo inicial</Label>
                 <Input inputMode="numeric" value={openingBalance} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOpeningBalance(toMasked(e.target.value, currencyCode))} placeholder="0,00" />
                 <p className="text-xs text-muted-foreground">Informe apenas o valor, sem usar o sinal de menos.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do saldo inicial</Label>
+                <Input type="date" max={todayISO()} value={openingDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOpeningDate(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Quando esse valor passou a existir na conta — hoje por padrão, mas escolha uma data anterior se a conta já existia antes de você cadastrar aqui.</p>
               </div>
               <div className="space-y-2">
                 <Label>Como está o saldo?</Label>
@@ -301,6 +333,7 @@ export function AccountWizard({ open, onOpenChange, profileId, onCreated }: Prop
                   <div>
                     <p className="text-sm text-muted-foreground">Saldo inicial</p>
                     <p className="text-3xl font-semibold">{formatCurrency(signedBalance, currencyCode)}</p>
+                    {signedBalance !== 0 && <p className="text-xs text-muted-foreground">em {formatDate(openingDate)}</p>}
                   </div>
                 )}
                 <div className="h-px bg-border" />

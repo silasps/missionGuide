@@ -10,7 +10,7 @@ import { CategoryPanel } from './category-panel'
 import { TrendChart } from '@/components/ui/charts/trend-chart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { aggregateMonthly } from '@/lib/financial/dashboard-aggregation'
-import { buildFinancialTimeline, TimelineMetric } from '@/lib/financial/timeline'
+import { buildFinancialTimeline, accountEffectiveStartDate, TimelineMetric } from '@/lib/financial/timeline'
 import { FinancialAccount, TransactionWithCategory, TransactionCategory, Partner } from '@/types/database'
 import { cn } from '@/lib/utils'
 
@@ -60,12 +60,14 @@ export function FinancialDashboard({ accounts, transactions, categories, partner
 
   const accountsInCurrency = useMemo(() => activeAccounts.filter((a) => a.currency_code === currency), [activeAccounts, currency])
   const currentBalance = useMemo(() => accountsInCurrency.reduce((s, a) => s + a.balance, 0), [accountsInCurrency])
-  // Menor `created_at` entre as contas somadas em `currentBalance` — meses
-  // anteriores a ele não têm saldo real pra mostrar (ver comentário de
-  // `buildFinancialTimeline`).
+  // Menor data de início entre as contas somadas em `currentBalance` —
+  // meses anteriores a ela não têm saldo real pra mostrar (ver
+  // `accountEffectiveStartDate`/comentário de `buildFinancialTimeline`).
   const accountsStartDate = useMemo(
-    () => accountsInCurrency.length ? new Date(Math.min(...accountsInCurrency.map((a) => new Date(a.created_at).getTime()))) : null,
-    [accountsInCurrency]
+    () => accountsInCurrency.length
+      ? new Date(Math.min(...accountsInCurrency.map((a) => accountEffectiveStartDate(a, txInCurrency).getTime())))
+      : null,
+    [accountsInCurrency, txInCurrency]
   )
   const timelinePoints = useMemo(
     () => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6, accountsStartDate),

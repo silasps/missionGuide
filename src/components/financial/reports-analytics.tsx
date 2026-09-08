@@ -6,7 +6,7 @@ import { CategoryBarChart } from '@/components/ui/charts/category-bar-chart'
 import { FrequencyChart } from '@/components/ui/charts/frequency-chart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { aggregateByCategoryScoped, aggregateFrequency, FrequencyGrouping } from '@/lib/financial/dashboard-aggregation'
-import { buildFinancialTimeline } from '@/lib/financial/timeline'
+import { buildFinancialTimeline, accountEffectiveStartDate } from '@/lib/financial/timeline'
 import { FinancialAccount, Transaction, TransactionCategory } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { TrendingUp } from 'lucide-react'
@@ -54,8 +54,10 @@ export function ReportsAnalytics({ accounts, transactions, categories }: Props) 
   const accountsInCurrency = useMemo(() => accounts.filter((a) => a.currency_code === currency), [accounts, currency])
   const currentBalance = useMemo(() => accountsInCurrency.reduce((s, a) => s + a.balance, 0), [accountsInCurrency])
   const accountsStartDate = useMemo(
-    () => accountsInCurrency.length ? new Date(Math.min(...accountsInCurrency.map((a) => new Date(a.created_at).getTime()))) : null,
-    [accountsInCurrency]
+    () => accountsInCurrency.length
+      ? new Date(Math.min(...accountsInCurrency.map((a) => accountEffectiveStartDate(a, txInCurrency).getTime())))
+      : null,
+    [accountsInCurrency, txInCurrency]
   )
   const timelinePoints = useMemo(
     () => buildFinancialTimeline(txInCurrency, currentBalance, 6, 6, accountsStartDate),

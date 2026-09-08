@@ -77,6 +77,7 @@ export function TransactionTable({ transactions, accounts, categories = [], part
                 {formatDate(t.date)}
                 {t.category?.name && ` · ${t.category.name}`}
                 {t.partner?.name && ` · ${t.partner.name}`}
+                {t.source === 'opening_balance' && ' · Saldo inicial'}
                 {!t.is_paid && <span className="text-amber-600"> · {t.type === 'income' ? 'A receber' : 'Não pago'}</span>}
               </p>
             </div>

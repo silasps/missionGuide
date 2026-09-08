@@ -39,6 +39,20 @@ export function metricValue(point: TimelinePoint, metric: TimelineMetric): numbe
   }
 }
 
+// Melhor data disponível pra "quando essa conta passou a existir com esse
+// saldo", usada como `accountsStartDate` de `buildFinancialTimeline`.
+// Prioriza a data do lançamento `opening_balance` (migration 095 — editável
+// pelo usuário no `AccountWizard`, pode ser retroativa) sobre `created_at`
+// (só o timestamp de quando a linha foi inserida no banco, não
+// necessariamente a data que o usuário escolheu pro saldo inicial). Cai
+// pra `created_at` só pra conta sem esse lançamento: criada antes desta
+// feature e ainda não migrada por backfill, saldo inicial zerado (nada pra
+// registrar) ou cartão de crédito (nunca ganha um, saldo ali é fatura).
+export function accountEffectiveStartDate(account: { id: string; created_at: string }, transactions: Transaction[]): Date {
+  const openingTx = transactions.find((t) => t.account_id === account.id && t.source === 'opening_balance')
+  return openingTx ? new Date(`${openingTx.date}T00:00:00`) : new Date(account.created_at)
+}
+
 function monthLabelFor(date: Date, currentYear: number) {
   const label = date.toLocaleDateString('pt-BR', { month: 'long' })
   const capitalized = label.charAt(0).toUpperCase() + label.slice(1)
