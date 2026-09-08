@@ -75,11 +75,6 @@ function CadastroForm() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
-        // Escopo extra pra tentar puxar a data de nascimento do Google (ver
-        // /auth/callback, que busca via People API só quando esse escopo foi
-        // concedido) — o usuário ainda pode negar essa permissão no
-        // consentimento, então birth_date continua opcional.
-        scopes: 'https://www.googleapis.com/auth/user.birthday.read',
       },
     })
   }
