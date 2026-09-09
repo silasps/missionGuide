@@ -412,7 +412,7 @@ export function HighlightForm({ highlight, profileId, backPath = '/dashboard/pro
       <SectionCard number={2} title="Cronograma & Formas de Apoio">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="trip_start_date">Data da viagem</Label>
+            <Label htmlFor="trip_start_date">Data de início</Label>
             <Input id="trip_start_date" type="date" value={tripStartDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTripStartDate(e.target.value)} />
           </div>
           <div className="space-y-2">
