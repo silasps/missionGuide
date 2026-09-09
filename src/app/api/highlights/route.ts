@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { resolveBudgetCategoryLabel } from '@/lib/highlights/budget-category-labels'
-import type { BudgetCategoryType } from '@/types/database'
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -163,9 +161,8 @@ export async function POST(req: NextRequest) {
       }
 
       await dbDelete(`project_budget_categories?highlight_id=eq.${hId}`)
-      let createdBudgetCategories: { id: string }[] = []
       if (Array.isArray(budgetCategories) && budgetCategories.length > 0) {
-        createdBudgetCategories = await dbPost('project_budget_categories', budgetCategories.map((b: { category_type: string; custom_label: string | null; description: string | null; target_amount: number }, i: number) => ({
+        await dbPost('project_budget_categories', budgetCategories.map((b: { category_type: string; custom_label: string | null; description: string | null; target_amount: number }, i: number) => ({
           highlight_id: hId,
           category_type: b.category_type,
           custom_label: b.custom_label,
@@ -175,38 +172,27 @@ export async function POST(req: NextRequest) {
         })))
       }
 
-      // Pontos de oração: os "soltos" (prayerPoints) e os vinculados a uma
-      // necessidade financeira (budgetCategories[i].prayerPoint) viram a
-      // mesma tabela — o vínculo usa o id recém-gerado de
-      // createdBudgetCategories (o delete-e-reinsere acima troca os ids a
-      // cada save, então só dá pra linkar depois do insert de verdade).
-      await dbDelete(`project_prayer_points?highlight_id=eq.${hId}`)
-      type BudgetCategoryInput = { category_type: BudgetCategoryType; custom_label: string | null; prayerPoint?: string | null }
-      const standalonePrayerPoints = Array.isArray(prayerPoints) ? prayerPoints : []
-      const linkedPrayerPoints = (Array.isArray(budgetCategories) ? (budgetCategories as BudgetCategoryInput[]) : [])
-        .map((b, i) => ({ b, category: createdBudgetCategories[i] }))
-        .filter((x): x is { b: BudgetCategoryInput; category: { id: string } } => Boolean(x.b.prayerPoint) && Boolean(x.category))
-        .map(({ b, category }) => ({
-          budget_category_id: category.id,
-          title: resolveBudgetCategoryLabel({ category_type: b.category_type, custom_label: b.custom_label }),
-          description: b.prayerPoint,
-        }))
-      // Postgrest exige que todos os objetos de um insert em lote tenham
-      // exatamente as mesmas chaves (PGRST102 "All object keys must match")
-      // — por isso os dois grupos abaixo preenchem os mesmos campos, mesmo
-      // quando o valor é só o default (null/false).
-      const allPrayerPoints = [
-        ...standalonePrayerPoints.map((p: { title: string; description: string | null; is_completed: boolean }) => ({
-          budget_category_id: null as string | null,
-          title: p.title,
-          description: p.description,
-          is_completed: p.is_completed,
-          completed_at: p.is_completed ? new Date().toISOString() : null,
-        })),
-        ...linkedPrayerPoints.map((p) => ({ ...p, is_completed: false, completed_at: null as string | null })),
-      ]
-      if (allPrayerPoints.length > 0) {
-        await dbPost('project_prayer_points', allPrayerPoints.map((p, i) => ({ ...p, highlight_id: hId, order_index: i })))
+      // prayerPoints só é enviado por HighlightForm (sempre um array, [] se
+      // "Apoio de oração" estiver desligado) — as seções de edição inline
+      // da página pública (título/capa, descrição, galeria, marcos, carta,
+      // status, formas de apoio, datas, financeiro) nunca incluem essa
+      // chave, então o guard abaixo evita que qualquer uma delas apague os
+      // pontos de oração do projeto ao salvar (bug real corrigido aqui —
+      // antes o delete rodava incondicionalmente a cada POST).
+      if (prayerPoints !== undefined) {
+        await dbDelete(`project_prayer_points?highlight_id=eq.${hId}`)
+        const points = Array.isArray(prayerPoints) ? prayerPoints : []
+        if (points.length > 0) {
+          await dbPost('project_prayer_points', points.map((p: { title: string; description: string | null; is_completed: boolean }, i: number) => ({
+            highlight_id: hId,
+            budget_category_id: null,
+            title: p.title,
+            description: p.description,
+            is_completed: p.is_completed,
+            completed_at: p.is_completed ? new Date().toISOString() : null,
+            order_index: i,
+          })))
+        }
       }
 
       await dbDelete(`project_gallery_images?highlight_id=eq.${hId}`)

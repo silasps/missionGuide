@@ -36,6 +36,22 @@ interface Props {
   backPath?: string
 }
 
+// Card de seção numerada — mesmo idioma visual já usado no card financeiro
+// da página pública (rounded-2xl border bg-card p-5), não a paleta da
+// referência de design (esta é só estrutural). Local/não-exportado: só
+// este arquivo usa.
+function SectionCard({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border bg-card p-5 space-y-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{number}</span>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      </div>
+      {children}
+    </section>
+  )
+}
+
 export function HighlightForm({ highlight, profileId, backPath = '/dashboard/projetos' }: Props) {
   const tDelete = useTranslations('DeleteProjectDialog')
   const router = useRouter()
@@ -122,15 +138,13 @@ export function HighlightForm({ highlight, profileId, backPath = '/dashboard/pro
       custom_label: b.custom_label ?? '',
       description: b.description ?? '',
       target_amount: toMasked(String(Math.round(b.target_amount * 100)), initialCurrency),
-      prayerPoint: (highlight?.prayerPoints ?? []).find(p => p.budget_category_id === b.id)?.description ?? '',
     }))
   )
   const budgetTotal = budgetCategories.reduce((sum, b) => sum + (parseFloat(fromMasked(b.target_amount, currency)) || 0), 0)
 
-  // Só os pontos "soltos" (sem budget_category_id) ficam aqui — os
-  // vinculados a uma necessidade financeira são editados inline em
-  // BudgetCategoriesEditor (campo prayerPoint) e recriados a cada save a
-  // partir de lá, não fazem parte desta lista.
+  // Pontos de oração não têm mais vínculo com categoria de orçamento —
+  // filtro por !p.budget_category_id só segue relevante pra ignorar linhas
+  // legadas de antes dessa mudança (nenhuma nova é criada com vínculo).
   const [prayerPoints, setPrayerPoints] = useState<PrayerPointDraft[]>(
     (highlight?.prayerPoints ?? [])
       .filter(p => !p.budget_category_id)
@@ -246,12 +260,13 @@ export function HighlightForm({ highlight, profileId, backPath = '/dashboard/pro
                     custom_label: b.category_type === 'other' ? (b.custom_label.trim() || 'Outros') : null,
                     description: b.description.trim() || null,
                     target_amount: parseFloat(fromMasked(b.target_amount, currency)),
-                    prayerPoint: b.prayerPoint?.trim() || null,
                   }))
               : [],
-            // Pontos "soltos" (sem necessidade financeira vinculada) — só
-            // fazem sentido salvar quando "Apoio de oração" está habilitado;
-            // os vinculados vêm junto de cada budgetCategories[i].prayerPoint.
+            // Sempre um array (nunca omitido) — a API só toca
+            // project_prayer_points quando esta chave está presente no
+            // body (ver POST /api/highlights), então HighlightForm precisa
+            // sempre mandar, mesmo [] quando "Apoio de oração" está
+            // desligado, pra continuar sendo a fonte de verdade da tabela.
             prayerPoints: goalTypes.includes('prayer')
               ? prayerPoints.filter(p => p.title.trim()).map(p => ({ title: p.title.trim(), description: p.description.trim() || null, is_completed: p.is_completed }))
               : [],
@@ -273,279 +288,281 @@ export function HighlightForm({ highlight, profileId, backPath = '/dashboard/pro
     })
   }
 
+  // Numeração dinâmica das seções — quando "Oração" está desligada, ela
+  // some do fluxo (não vira card vazio) e as seções seguintes recuam um
+  // número, pra nunca aparecer um buraco tipo 1-2-3-5-6.
+  const prayerSectionShown = goalTypes.includes('prayer')
+  const nPrayer = 4
+  const nStory = prayerSectionShown ? 5 : 4
+  const nMilestones = prayerSectionShown ? 6 : 5
+
   return (
-    <form onSubmit={handleSave} className="space-y-6">
-      {/* Desktop: 2 columns. Mobile: single column. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
+    <form onSubmit={handleSave} className="space-y-4 pb-24">
+      {/* Status — só em edição, fora de qualquer seção numerada */}
+      {highlight && (
+        <div className="flex justify-end gap-2">
+          {([
+            { value: 'active',    label: '🟢 Ativo' },
+            { value: 'completed', label: '✅ Concluído' },
+            { value: 'hidden',    label: '🔒 Oculto' },
+          ] as const).map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatus(value)}
+              className={`py-1.5 px-2.5 rounded-lg border text-xs transition-colors ${
+                status === value ? 'border-primary bg-primary/10 text-primary font-medium' : 'border-border text-muted-foreground hover:border-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
-        {/* ── Coluna esquerda: campos primários ── */}
-        <div className="space-y-5">
-          {/* Cover */}
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <Label>Capa</Label>
-              <span className="text-xs text-muted-foreground">1200 × 630 px recomendado</span>
-            </div>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const type = getMediaType(file)
-                if (type === 'unknown') return
-                setCoverMedia(createMediaDraft(file, type))
-                setCoverMediaType(type)
-              }}
-            />
+      <SectionCard number={1} title="Identidade & Capa">
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <Label>Capa</Label>
+            <span className="text-xs text-muted-foreground">1200 × 630 px recomendado</span>
+          </div>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const type = getMediaType(file)
+              if (type === 'unknown') return
+              setCoverMedia(createMediaDraft(file, type))
+              setCoverMediaType(type)
+            }}
+          />
 
-            {coverMedia ? (
-              coverMedia.type === 'video' ? (
-                <video src={coverMedia.previewUrl} controls className="w-full aspect-[1.91/1] rounded-lg bg-black object-cover" />
-              ) : (
-                <ImageCropEditor
-                  media={coverMedia}
-                  aspect={coverAspect}
-                  onAspectChange={() => {}}
-                  onPositionChange={(pos) => setCoverMedia((prev) => (prev ? { ...prev, position: pos } : prev))}
-                  onZoomChange={(zoom) => setCoverMedia((prev) => (prev ? { ...prev, zoom } : prev))}
-                  showAspectPicker={false}
-                />
-              )
-            ) : coverPreview ? (
-              <div className="relative w-full aspect-[1.91/1] rounded-lg overflow-hidden bg-muted">
-                {coverMediaType === 'video' ? (
-                  <video src={coverPreview} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
-                ) : (
-                  <Image src={coverPreview} alt="Capa" fill className="object-cover" style={{ objectPosition: highlight?.cover_position ?? '50% 50%' }} />
-                )}
-              </div>
+          {coverMedia ? (
+            coverMedia.type === 'video' ? (
+              <video src={coverMedia.previewUrl} controls className="w-full aspect-[1.91/1] rounded-lg bg-black object-cover" />
             ) : (
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                className="w-full aspect-[1.91/1] rounded-lg border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ImagePlus className="h-7 w-7" />
-                <span className="text-sm">Clique para adicionar capa (foto ou vídeo)</span>
-              </button>
-            )}
-
-            {(coverMedia || coverPreview) && (
-              <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()}>
-                Trocar capa
-              </Button>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
-            <LocaleContentTabs
-              originalLocale={originalLocale}
-              originalText={title}
-              onOriginalChange={setTitle}
-              translations={titleTranslations}
-              onTranslationChange={(locale, value) => { setTitleTranslations((prev) => ({ ...prev, [locale]: value })); setTitleSources((prev) => ({ ...prev, [locale]: 'human' })) }}
-              onTranslateWithAi={(locale) => translateField(title, locale, setTitleTranslations, setTitleSources)}
-              originalPlaceholder="Ex: Construção da Base em Moçambique"
-              rows={1}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <LocaleContentTabs
-              originalLocale={originalLocale}
-              originalText={description}
-              onOriginalChange={setDescription}
-              translations={descTranslations}
-              onTranslationChange={(locale, value) => { setDescTranslations((prev) => ({ ...prev, [locale]: value })); setDescSources((prev) => ({ ...prev, [locale]: 'human' })) }}
-              onTranslateWithAi={(locale) => translateField(description, locale, setDescTranslations, setDescSources)}
-              originalPlaceholder="Descreva o projeto e seu impacto..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="trip_start_date">Data da viagem</Label>
-              <Input id="trip_start_date" type="date" value={tripStartDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTripStartDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="funding_deadline">Prazo para bater a meta</Label>
-              <Input id="funding_deadline" type="date" value={fundingDeadline} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFundingDeadline(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Como os parceiros podem ajudar?</Label>
-            <p className="text-xs text-muted-foreground">Selecione uma ou mais formas de apoio para este projeto.</p>
-            <SupportTypesPicker selected={goalTypes} onChange={setGoalTypes} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Categoria do projeto</Label>
-            <p className="text-xs text-muted-foreground">Ajuda a mostrar este projeto para parceiros com afinidade pelo assunto. Opcional.</p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {PROJECT_CATEGORIES.map(({ value, emoji, label }) => {
-                const selected = categories.includes(value)
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setCategories(prev =>
-                      prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]
-                    )}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                      selected
-                        ? 'border-primary bg-primary/8 text-foreground font-medium'
-                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <span>{emoji}</span>
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {goalTypes.includes('financial') && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2 col-span-1">
-                  <Label htmlFor="currency">Moeda</Label>
-                  <select
-                    id="currency"
-                    value={currency}
-                    onChange={(e) => handleCurrencyChange(e.target.value)}
-                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                {budgetMode === 'single' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="goal">Meta</Label>
-                    <Input
-                      id="goal"
-                      inputMode="numeric"
-                      value={goalAmount}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGoalAmount(toMasked(e.target.value, currency))}
-                      placeholder="0,00"
-                    />
-                  </div>
-                )}
-                {budgetMode === 'single' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="current">Arrecadado</Label>
-                    <Input
-                      id="current"
-                      inputMode="numeric"
-                      value={currentAmount}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentAmount(toMasked(e.target.value, currency))}
-                      placeholder="0,00"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <BudgetCategoriesEditor
-                currency={currency}
-                mode={budgetMode}
-                onModeChange={setBudgetMode}
-                categories={budgetCategories}
-                onChange={setBudgetCategories}
+              <ImageCropEditor
+                media={coverMedia}
+                aspect={coverAspect}
+                onAspectChange={() => {}}
+                onPositionChange={(pos) => setCoverMedia((prev) => (prev ? { ...prev, position: pos } : prev))}
+                onZoomChange={(zoom) => setCoverMedia((prev) => (prev ? { ...prev, zoom } : prev))}
+                showAspectPicker={false}
               />
+            )
+          ) : coverPreview ? (
+            <div className="relative w-full aspect-[1.91/1] rounded-lg overflow-hidden bg-muted">
+              {coverMediaType === 'video' ? (
+                <video src={coverPreview} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <Image src={coverPreview} alt="Capa" fill className="object-cover" style={{ objectPosition: highlight?.cover_position ?? '50% 50%' }} />
+              )}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              className="w-full aspect-[1.91/1] rounded-lg border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ImagePlus className="h-7 w-7" />
+              <span className="text-sm">Clique para adicionar capa (foto ou vídeo)</span>
+            </button>
           )}
 
-          {goalTypes.includes('prayer') && (
-            <div className="space-y-2">
-              <Label>Pontos de oração</Label>
-              <p className="text-xs text-muted-foreground">Opcional — ajuda parceiros a orar por algo específico, em vez de só “orar pelo projeto”.</p>
-              <PrayerPointsEditor points={prayerPoints} onChange={setPrayerPoints} />
-            </div>
+          {(coverMedia || coverPreview) && (
+            <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()}>
+              Trocar capa
+            </Button>
           )}
         </div>
 
-        {/* ── Coluna direita: contexto e configurações ── */}
-        <div className="space-y-5">
-          {/* Status — só em edição */}
-          {highlight && (
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div className="flex gap-2">
-                {([
-                  { value: 'active',    label: '🟢 Ativo' },
-                  { value: 'completed', label: '✅ Concluído' },
-                  { value: 'hidden',    label: '🔒 Oculto' },
-                ] as const).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setStatus(value)}
-                    className={`flex-1 py-2 px-2 rounded-lg border text-xs transition-colors ${
-                      status === value ? 'border-primary bg-primary/10 text-primary font-medium' : 'border-border text-muted-foreground hover:border-foreground'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+        <div className="space-y-2">
+          <Label htmlFor="title">Título *</Label>
+          <LocaleContentTabs
+            originalLocale={originalLocale}
+            originalText={title}
+            onOriginalChange={setTitle}
+            translations={titleTranslations}
+            onTranslationChange={(locale, value) => { setTitleTranslations((prev) => ({ ...prev, [locale]: value })); setTitleSources((prev) => ({ ...prev, [locale]: 'human' })) }}
+            onTranslateWithAi={(locale) => translateField(title, locale, setTitleTranslations, setTitleSources)}
+            originalPlaceholder="Ex: Construção da Base em Moçambique"
+            rows={1}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Descrição</Label>
+          <LocaleContentTabs
+            originalLocale={originalLocale}
+            originalText={description}
+            onOriginalChange={setDescription}
+            translations={descTranslations}
+            onTranslationChange={(locale, value) => { setDescTranslations((prev) => ({ ...prev, [locale]: value })); setDescSources((prev) => ({ ...prev, [locale]: 'human' })) }}
+            onTranslateWithAi={(locale) => translateField(description, locale, setDescTranslations, setDescSources)}
+            originalPlaceholder="Descreva o projeto e seu impacto..."
+            rows={3}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard number={2} title="Cronograma & Formas de Apoio">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="trip_start_date">Data da viagem</Label>
+            <Input id="trip_start_date" type="date" value={tripStartDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTripStartDate(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="funding_deadline">Prazo para bater a meta</Label>
+            <Input id="funding_deadline" type="date" value={fundingDeadline} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFundingDeadline(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Como os parceiros podem ajudar?</Label>
+          <p className="text-xs text-muted-foreground">Selecione uma ou mais formas de apoio para este projeto.</p>
+          <SupportTypesPicker selected={goalTypes} onChange={setGoalTypes} />
+        </div>
+      </SectionCard>
+
+      <SectionCard number={3} title="Causa & Metas">
+        <div className="space-y-2">
+          <Label>Categoria do projeto</Label>
+          <p className="text-xs text-muted-foreground">Ajuda a mostrar este projeto para parceiros com afinidade pelo assunto. Opcional.</p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {PROJECT_CATEGORIES.map(({ value, emoji, label }) => {
+              const selected = categories.includes(value)
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCategories(prev =>
+                    prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]
+                  )}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-colors ${
+                    selected
+                      ? 'border-primary bg-primary/8 text-foreground font-medium'
+                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span>{emoji}</span>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {goalTypes.includes('financial') && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="currency">Moeda</Label>
+                <select
+                  id="currency"
+                  value={currency}
+                  onChange={(e) => handleCurrencyChange(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
+              {budgetMode === 'single' && (
+                <div className="space-y-2">
+                  <Label htmlFor="goal">Meta</Label>
+                  <Input
+                    id="goal"
+                    inputMode="numeric"
+                    value={goalAmount}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGoalAmount(toMasked(e.target.value, currency))}
+                    placeholder="0,00"
+                  />
+                </div>
+              )}
+              {budgetMode === 'single' && (
+                <div className="space-y-2">
+                  <Label htmlFor="current">Arrecadado</Label>
+                  <Input
+                    id="current"
+                    inputMode="numeric"
+                    value={currentAmount}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentAmount(toMasked(e.target.value, currency))}
+                    placeholder="0,00"
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Versículo */}
-          <div className="space-y-2">
-            <Label htmlFor="scripture">Versículo / palavra</Label>
-            <LocaleContentTabs
-              originalLocale={originalLocale}
-              originalText={scripture}
-              onOriginalChange={setScripture}
-              translations={scriptureTranslations}
-              onTranslationChange={(locale, value) => { setScriptureTranslations((prev) => ({ ...prev, [locale]: value })); setScriptureSources((prev) => ({ ...prev, [locale]: 'human' })) }}
-              onTranslateWithAi={(locale) => translateField(scripture, locale, setScriptureTranslations, setScriptureSources)}
-              originalPlaceholder="Ex: Jeremias 29:11 — Porque eu sei os planos que tenho para vós..."
-              rows={3}
+            <BudgetCategoriesEditor
+              currency={currency}
+              mode={budgetMode}
+              onModeChange={setBudgetMode}
+              categories={budgetCategories}
+              onChange={setBudgetCategories}
             />
           </div>
+        )}
+      </SectionCard>
 
-          {/* Carta */}
+      {prayerSectionShown && (
+        <SectionCard number={nPrayer} title="Oração">
           <div className="space-y-2">
-            <Label htmlFor="letter">A história por trás deste projeto</Label>
-            <p className="text-xs text-muted-foreground">Conte o que Deus falou, por que isso importa e como surgiu. Tanto novos visitantes quanto parceiros antigos vão ler isso.</p>
-            <LocaleContentTabs
-              originalLocale={originalLocale}
-              originalText={letter}
-              onOriginalChange={setLetter}
-              translations={letterTranslations}
-              onTranslationChange={(locale, value) => { setLetterTranslations((prev) => ({ ...prev, [locale]: value })); setLetterSources((prev) => ({ ...prev, [locale]: 'human' })) }}
-              onTranslateWithAi={(locale) => translateField(letter, locale, setLetterTranslations, setLetterSources)}
-              originalPlaceholder="Queridos amigos e parceiros..."
-              rows={8}
-            />
+            <p className="text-xs text-muted-foreground">Pontos que parceiros podem orar especificamente, em vez de só “orar pelo projeto”.</p>
+            <PrayerPointsEditor points={prayerPoints} onChange={setPrayerPoints} />
           </div>
+        </SectionCard>
+      )}
 
-          {/* Marcos */}
-          <div className="space-y-3">
-            <Label>Marcos do projeto</Label>
-            <MilestonesEditor milestones={milestones} onChange={setMilestones} originalLocale={originalLocale} profileId={profileId} />
-          </div>
-
-          {/* Galeria de fotos — imagens avulsas que representam o projeto,
-              separadas da capa única e dos posts vinculados ao projeto. */}
-          <div className="space-y-3">
-            <Label>Fotos do projeto</Label>
-            <GalleryEditor images={galleryImages} onChange={setGalleryImages} />
-          </div>
+      <SectionCard number={nStory} title="História & Fé">
+        <div className="space-y-2">
+          <Label htmlFor="scripture">Versículo / palavra</Label>
+          <LocaleContentTabs
+            originalLocale={originalLocale}
+            originalText={scripture}
+            onOriginalChange={setScripture}
+            translations={scriptureTranslations}
+            onTranslationChange={(locale, value) => { setScriptureTranslations((prev) => ({ ...prev, [locale]: value })); setScriptureSources((prev) => ({ ...prev, [locale]: 'human' })) }}
+            onTranslateWithAi={(locale) => translateField(scripture, locale, setScriptureTranslations, setScriptureSources)}
+            originalPlaceholder="Ex: Jeremias 29:11 — Porque eu sei os planos que tenho para vós..."
+            rows={3}
+          />
         </div>
-      </div>
 
-      {/* Botões — fora do grid, abaixo das duas colunas */}
-      <div className="flex items-center gap-3 pt-2 border-t">
+        <div className="space-y-2">
+          <Label htmlFor="letter">A história por trás deste projeto</Label>
+          <p className="text-xs text-muted-foreground">Conte o que Deus falou, por que isso importa e como surgiu. Tanto novos visitantes quanto parceiros antigos vão ler isso.</p>
+          <LocaleContentTabs
+            originalLocale={originalLocale}
+            originalText={letter}
+            onOriginalChange={setLetter}
+            translations={letterTranslations}
+            onTranslationChange={(locale, value) => { setLetterTranslations((prev) => ({ ...prev, [locale]: value })); setLetterSources((prev) => ({ ...prev, [locale]: 'human' })) }}
+            onTranslateWithAi={(locale) => translateField(letter, locale, setLetterTranslations, setLetterSources)}
+            originalPlaceholder="Queridos amigos e parceiros..."
+            rows={8}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard number={nMilestones} title="Marcos & Galeria">
+        <div className="space-y-3">
+          <Label>Marcos do projeto</Label>
+          <MilestonesEditor milestones={milestones} onChange={setMilestones} originalLocale={originalLocale} profileId={profileId} />
+        </div>
+
+        {/* Galeria de fotos — imagens avulsas que representam o projeto,
+            separadas da capa única e dos posts vinculados ao projeto. */}
+        <div className="space-y-3">
+          <Label>Fotos do projeto</Label>
+          <GalleryEditor images={galleryImages} onChange={setGalleryImages} />
+        </div>
+      </SectionCard>
+
+      {/* Barra de ação fixa no rodapé */}
+      <div className="sticky bottom-0 inset-x-0 z-10 -mx-4 flex items-center gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur-sm md:mx-0 md:rounded-b-2xl">
         {highlight && (
           <Button type="button" variant="ghost" className="mr-auto text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteDialogOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />

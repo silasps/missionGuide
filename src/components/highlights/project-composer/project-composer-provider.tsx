@@ -1,11 +1,10 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
-import { ProjectComposerModal } from './project-composer-modal'
+import { createContext, useContext, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface ProjectComposerContextValue {
   openProjectComposer: () => void
-  closeProjectComposer: () => void
 }
 
 const ProjectComposerContext = createContext<ProjectComposerContextValue | null>(null)
@@ -21,28 +20,23 @@ interface Props {
   children: ReactNode
 }
 
-export function ProjectComposerProvider({ profileId, children }: Props) {
-  const [isOpen, setIsOpen] = useState(false)
+// "Criar projeto" sempre cai no mesmo formulário de página cheia
+// (HighlightForm, em /dashboard/projetos/novo) — antes esse provider abria
+// um wizard fullscreen separado (ProjectComposerModal), reimplementação
+// parcial do mesmo formulário (sem PrayerPointsEditor/GalleryEditor).
+// `profileId` continua no tipo Props só pra não quebrar os 3 pontos de
+// montagem existentes (dashboard/layout.tsx, [username]/page.tsx,
+// [username]/projetos/[slug]/page.tsx), que não precisam mudar.
+export function ProjectComposerProvider({ children }: Props) {
+  const router = useRouter()
 
   function openProjectComposer() {
-    setIsOpen(true)
-  }
-
-  function closeProjectComposer() {
-    setIsOpen(false)
+    router.push('/dashboard/projetos/novo')
   }
 
   return (
-    <ProjectComposerContext.Provider value={{ openProjectComposer, closeProjectComposer }}>
+    <ProjectComposerContext.Provider value={{ openProjectComposer }}>
       {children}
-      {isOpen && (
-        <ProjectComposerModal
-          open={isOpen}
-          onOpenChange={(next) => (next ? setIsOpen(true) : closeProjectComposer())}
-          profileId={profileId}
-          onSaved={closeProjectComposer}
-        />
-      )}
     </ProjectComposerContext.Provider>
   )
 }
